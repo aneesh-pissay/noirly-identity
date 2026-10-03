@@ -1,17 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024" role="img" aria-label="Noirly Identity mark">
   <title>Noirly Identity — monochrome</title>
-  <!-- Default tint for standalone use. Delete this rule to inherit color from the parent. -->
+  <desc>A shield with a keyhole: one key, every Noirly door.</desc>
+  <!-- Default tint for standalone use. Delete this rule to inherit color from the parent.
+       Plain currentColor shapes only (no masks/clipPaths) so theming code can recolor it safely. -->
   <style>svg { color: #C9A44A; }</style>
-  <defs>
-    <!-- The seam: a keyed tab that mates with one socket and no other -->
-    <mask id="nim-kerf">
-      <rect width="1024" height="1024" fill="#fff"/>
-      <path d="M225 512 H444 A68 68 0 0 1 580 512 H799"
-            fill="none" stroke="#000" stroke-width="30"/>
-    </mask>
-  </defs>
-  <!-- Corner rounding comes from the round-joined stroke, not from arc segments -->
-  <path d="M512 234 L753 373 L753 651 L512 790 L271 651 L271 373 Z"
-        fill="currentColor" stroke="currentColor" stroke-width="60"
-        stroke-linejoin="round" mask="url(#nim-kerf)"/>
+  <!-- Shield with a keyhole knocked out (evenodd), softened by a round-joined stroke -->
+  <path fill="currentColor" fill-rule="evenodd" stroke="currentColor" stroke-width="40" stroke-linejoin="round"
+        d="M512 168 L804 276 V492 C804 676 684 800 512 864 C340 800 220 676 220 492 V276 Z
+           M468 540 A100 100 0 1 1 556 540 L586 708 H438 Z"/>
 </svg>
