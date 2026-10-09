@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Button, Card, CardContent, CardHeader, CardTitle } from "@noirly-dev/ui";
 import { BrandMark } from "@/components/BrandMark";
+import { SiteFooter } from "@/components/LegalPage";
 import { MarketingHeader } from "@/components/MarketingHeader";
 
 const features = [
@@ -93,6 +94,7 @@ export default function Home() {
           <span className="meta">Auth · OIDC · PKCE</span>
         </div>
       </footer>
+      <SiteFooter />
     </div>
   );
 }
