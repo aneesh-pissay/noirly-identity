@@ -272,6 +272,25 @@ export function AccountSettings({ initialUser }: Props) {
               </div>
             )}
           </div>
+
+          <div className="border-t border-[var(--hairline)] pt-8">
+            <p className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--muted-foreground)]">
+              Privacy
+            </p>
+            <h2 className="mt-2 font-display text-xl font-semibold tracking-tight">
+              Your data
+            </h2>
+            <p className="mt-3 text-sm text-[var(--muted-foreground)]">
+              Read what Noirly keeps and why, or delete your account and its
+              Noirly Flow data for good.
+            </p>
+            <div className="mt-4 flex flex-wrap gap-x-6 gap-y-2">
+              <TextLink href="/privacy">Privacy policy</TextLink>
+              <TextLink href="/delete-account" className="text-red-400 hover:text-red-300">
+                Delete account
+              </TextLink>
+            </div>
+          </div>
         </div>
       </AuthShell>
     </>

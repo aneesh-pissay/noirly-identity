@@ -17,7 +17,8 @@
     "client:list": "tsx scripts/list-clients.ts",
     "client:promote": "tsx scripts/promote-oauth-from-test.ts",
     "user:promote-admin": "tsx scripts/promote-admin.ts",
-    "email:test": "tsx scripts/test-smtp.ts"
+    "email:test": "tsx scripts/test-smtp.ts",
+    "account:retry-deletions": "tsx scripts/retry-deletion-notices.ts"
   },
   "dependencies": {
     "@noirly-dev/ui": "^0.3.1",

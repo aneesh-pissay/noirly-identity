@@ -75,6 +75,16 @@ export const changePasswordSchema = z.object({
   newPassword: passwordSchema,
 });
 
+/** Proof for deleting an account: the password, or (Google-only accounts) the email typed out. */
+export const deleteAccountSchema = z
+  .object({
+    password: z.string().min(1).max(128).optional(),
+    confirmEmail: z.string().trim().max(320).optional(),
+    /** Check the proof only, delete nothing (apps verify before removing their own data). */
+    verifyOnly: z.boolean().optional(),
+  })
+  .strict();
+
 export const forgotPasswordSchema = z.object({
   email: emailSchema,
 });
