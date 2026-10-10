@@ -78,7 +78,7 @@ export function DeleteAccountForm({ email, hasPassword }: { email: string; hasPa
           checked={understood}
           onChange={(e) => setUnderstood(e.target.checked)}
         />
-        <span>I understand this permanently deletes my account and my Noirly Flow data.</span>
+        <span>I understand this permanently deletes my account and my data in every Noirly app.</span>
       </label>
       {error ? <Notice tone="error">{error}</Notice> : null}
       <div>

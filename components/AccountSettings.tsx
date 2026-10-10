@@ -282,7 +282,7 @@ export function AccountSettings({ initialUser }: Props) {
             </h2>
             <p className="mt-3 text-sm text-[var(--muted-foreground)]">
               Read what Noirly keeps and why, or delete your account and its
-              Noirly Flow data for good.
+              data in the Noirly apps for good.
             </p>
             <div className="mt-4 flex flex-wrap gap-x-6 gap-y-2">
               <TextLink href="/privacy">Privacy policy</TextLink>

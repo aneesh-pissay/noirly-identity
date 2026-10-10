@@ -13,6 +13,7 @@ export const LEGAL = {
   /** Noirly apps that sign in with Identity, each with its own privacy policy. */
   apps: [
     { name: "Noirly Flow", what: "tasks, boards and workspaces", privacyUrl: "https://noirly.flow.aneesh-pissay.in/privacy" },
+    { name: "Noirly Ledger", what: "budgets, expenses and shared spending", privacyUrl: "https://noirly.ledger.aneesh-pissay.in/privacy" },
   ],
 } as const;
 

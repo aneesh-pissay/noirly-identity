@@ -138,12 +138,12 @@ export default function PrivacyPage() {
       <LegalSection id="delete" title="Deleting your account">
         <p>
           You can delete your Noirly account at any time at{" "}
-          <Link href="/delete-account">{LEGAL.host}/delete-account</Link>, or from inside a Noirly app that offers it (for
-          example Noirly Flow: Menu → Delete account).
+          <Link href="/delete-account">{LEGAL.host}/delete-account</Link>, or from inside a Noirly app that offers it (Noirly
+          Flow: Menu → Delete account; Noirly Ledger: Settings → Delete account).
         </p>
         <p>
           This removes your account, your password hash, your Google sign-in link, and all your sessions and app
-          sign-ins. Every device is signed out. We also tell the Noirly apps you used (such as Noirly Flow) that the account
+          sign-ins. Every device is signed out. We also tell the Noirly apps you used (such as Noirly Flow and Noirly Ledger) that the account
           is gone, so they delete the data they hold for it as their own policies describe. This cannot be undone.
         </p>
       </LegalSection>
