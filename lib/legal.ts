@@ -8,11 +8,11 @@ export const LEGAL = {
   /** Who runs Noirly and is responsible for the data. */
   operator: "Aneesh Pissay",
   country: "India",
-  effectiveDate: "9 October 2026",
-  /** Apps this policy covers, with the host each runs on. */
-  products: [
-    { name: "Noirly Identity", what: "accounts and sign-in for every Noirly app", host: "noirly.identity.aneesh-pissay.in" },
-    { name: "Noirly Flow", what: "tasks, boards and workspaces, on the web and on Android", host: "noirly.flow.aneesh-pissay.in" },
+  effectiveDate: "10 October 2026",
+  host: "noirly.identity.aneesh-pissay.in",
+  /** Noirly apps that sign in with Identity, each with its own privacy policy. */
+  apps: [
+    { name: "Noirly Flow", what: "tasks, boards and workspaces", privacyUrl: "https://noirly.flow.aneesh-pissay.in/privacy" },
   ],
 } as const;
 

@@ -73,7 +73,8 @@ export default async function DeleteAccountPage() {
           </li>
         </ul>
         <p>
-          The details are in the <Link href="/privacy#delete">privacy policy</Link>.
+          Details: the <Link href="/privacy#delete">Noirly Identity privacy policy</Link> and the{" "}
+          <a href="https://noirly.flow.aneesh-pissay.in/privacy#delete">Noirly Flow privacy policy</a>.
         </p>
       </LegalSection>
 
