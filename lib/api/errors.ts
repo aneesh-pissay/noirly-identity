@@ -26,6 +26,13 @@ export class OAuthError extends Error {
 
 export function errorResponse(error: unknown): NextResponse {
   if (error instanceof AppError) {
+    if (error.code === "mfa_required") {
+      const details = error.details as { challenge: string; mobile: boolean };
+      const response = NextResponse.json({ error: error.code, message: error.message, ...(details.mobile ? { details: { challenge: details.challenge } } : {}) }, { status: 401 });
+      if (!details.mobile) response.cookies.set("noirly_mfa_challenge", details.challenge, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "strict", path: "/", maxAge: 300 });
+      return applySecurityHeaders(response);
+    }
+
     return applySecurityHeaders(
       NextResponse.json(
         {
@@ -50,7 +57,7 @@ export function errorResponse(error: unknown): NextResponse {
     );
   }
 
-  console.error("Unhandled error", error instanceof Error ? error.message : "unknown");
+  console.error("Unhandled request error");
   return applySecurityHeaders(
     NextResponse.json(
       {

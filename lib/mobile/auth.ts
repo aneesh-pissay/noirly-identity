@@ -1,3 +1,4 @@
+import { isBlockedUser } from "@/lib/auth/user-policy";
 import { AppError } from "@/lib/api/errors";
 import { loginUser, registerUser } from "@/lib/auth/auth-service";
 import {
@@ -44,7 +45,7 @@ export async function mobileLoginWithPassword(
   const scope = resolveMobileScope(client, input.scope);
   const result = await loginUser(
     { email: input.email, password: input.password },
-    meta,
+    { ...meta, mobileMfa: { clientId: client.clientId, scope, nonce: input.nonce } },
   );
   return mintMobileTokens({
     clientId: client.clientId,
@@ -95,7 +96,7 @@ export async function mobileLoginWithGoogle(
     credential: input.id_token,
     nonce: input.nonce,
   });
-  const result = await loginWithGoogleProfile(profile, meta);
+  const result = await loginWithGoogleProfile(profile, { ...meta, mobileMfa: { clientId: client.clientId, scope, nonce: input.nonce } });
   return mintMobileTokens({
     clientId: client.clientId,
     sessionToken: result.sessionToken,
@@ -132,7 +133,7 @@ export async function mobileRefreshTokens(
   await refreshSessionExpiry(refreshRecord.sessionId, env.REFRESH_TOKEN_TTL_SECONDS);
 
   const user = await User.findById(refreshRecord.userId);
-  if (!user || user.status === "disabled") {
+  if (!user || isBlockedUser(user)) {
     throw new AppError("User is not available", 401, "invalid_credentials");
   }
 

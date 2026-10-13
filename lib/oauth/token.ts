@@ -1,3 +1,4 @@
+import { isBlockedUser } from "@/lib/auth/user-policy";
 import { OAuthError } from "@/lib/api/errors";
 import { createIdToken } from "@/lib/oidc/id-token";
 import { getActiveClient } from "@/lib/oauth/clients";
@@ -114,7 +115,7 @@ export async function exchangeAuthorizationCode(input: {
   await record.save();
 
   const user = await User.findById(record.userId);
-  if (!user || user.status === "disabled") {
+  if (!user || isBlockedUser(user)) {
     throw new OAuthError("invalid_grant", "User is not available");
   }
 
@@ -193,7 +194,7 @@ export async function exchangeRefreshToken(input: {
   }
 
   const user = await User.findById(previous.userId);
-  if (!user || user.status === "disabled") {
+  if (!user || isBlockedUser(user)) {
     throw new OAuthError("invalid_grant", "User is not available");
   }
 

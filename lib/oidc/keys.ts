@@ -21,6 +21,7 @@ export async function getSigningKeys(): Promise<KeySet> {
   const privateKey = await importPKCS8(env.JWT_PRIVATE_KEY, "RS256");
   const publicKey = await importSPKI(env.JWT_PUBLIC_KEY, "RS256");
   const publicJwk = await exportJWK(publicKey);
+  if (!publicJwk.n || Buffer.from(publicJwk.n, "base64url").length < 256) throw new Error("JWT signing requires an RSA key of at least 2048 bits");
   publicJwk.alg = "RS256";
   publicJwk.use = "sig";
   publicJwk.kid = env.JWT_KEY_ID;

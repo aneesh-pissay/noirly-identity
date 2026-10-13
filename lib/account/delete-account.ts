@@ -1,3 +1,6 @@
+import { isBlockedUser } from "@/lib/auth/user-policy";
+import { Mfa, Passkey, SecurityChallenge } from "@/models/SecurityCredential";
+import { MobileBrowserLogin } from "@/models/MobileBrowserLogin";
 import type { Types } from "mongoose";
 import { AppError } from "@/lib/api/errors";
 import { notifyAccountDeleted } from "@/lib/account/deletion-webhooks";
@@ -51,6 +54,10 @@ export async function deleteUserAccount(
 ): Promise<DeletionResult> {
   const sub = String(userId);
   await Promise.all([
+    Mfa.deleteMany({ userId }),
+    Passkey.deleteMany({ userId }),
+    SecurityChallenge.deleteMany({ userId }),
+    MobileBrowserLogin.deleteMany({ userId }),
     Session.deleteMany({ userId }),
     AccessToken.deleteMany({ userId }),
     RefreshToken.deleteMany({ userId }),
@@ -66,7 +73,7 @@ export async function deleteUserAccount(
 
 async function loadUser(userId: Types.ObjectId | string): Promise<UserDocument> {
   const user = await User.findById(userId).select("+passwordHash");
-  if (!user || user.status === "disabled") {
+  if (!user || isBlockedUser(user)) {
     throw new AppError("Authentication required", 401, "unauthorized");
   }
   return user;

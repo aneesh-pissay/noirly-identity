@@ -70,6 +70,7 @@ async function deliver(hook: DeletionWebhook, sub: string): Promise<string | nul
   try {
     const response = await fetch(hook.url, {
       method: "POST",
+      redirect: "error",
       headers: { "content-type": "application/secevent+jwt", accept: "application/json" },
       body: await signDeletionEvent(sub, hook.clientId),
       signal: AbortSignal.timeout(DELIVERY_TIMEOUT_MS),
@@ -77,7 +78,8 @@ async function deliver(hook: DeletionWebhook, sub: string): Promise<string | nul
     });
     return response.ok ? null : `HTTP ${response.status}`;
   } catch (error) {
-    return error instanceof Error ? error.message : "delivery failed";
+    void error;
+    return "delivery failed";
   }
 }
 
@@ -90,8 +92,8 @@ export async function notifyAccountDeleted(sub: string): Promise<{ delivered: st
   let hooks: DeletionWebhook[] = [];
   try {
     hooks = configuredWebhooks();
-  } catch (error) {
-    console.error("Account deletion webhooks misconfigured", error instanceof Error ? error.message : error);
+  } catch {
+    console.error("Account deletion webhooks misconfigured");
   }
   const results = await Promise.all(hooks.map(async (hook) => ({ hook, error: await deliver(hook, sub) })));
   const pending = results.filter((r) => r.error !== null);

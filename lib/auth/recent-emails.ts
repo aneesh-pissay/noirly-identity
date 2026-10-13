@@ -1,5 +1,27 @@
 const STORAGE_KEY = "noirly-recent-emails";
 const MAX_EMAILS = 6;
+const CHANGE_EVENT = "noirly-recent-emails-changed";
+
+export function subscribeRecentEmails(listener: () => void): () => void {
+  const onStorage = (event: StorageEvent) => {
+    if (event.key === STORAGE_KEY || event.key === null) listener();
+  };
+  window.addEventListener("storage", onStorage);
+  window.addEventListener(CHANGE_EVENT, listener);
+  return () => {
+    window.removeEventListener("storage", onStorage);
+    window.removeEventListener(CHANGE_EVENT, listener);
+  };
+}
+
+// A primitive snapshot remains stable between changes and avoids hydration mismatch.
+export function recentEmailsSnapshot(): string {
+  return JSON.stringify(listRecentEmails());
+}
+
+export function serverRecentEmailsSnapshot(): string {
+  return "[]";
+}
 
 function isEmail(value: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
@@ -30,6 +52,7 @@ export function rememberEmail(email: string): string[] {
   );
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    window.dispatchEvent(new Event(CHANGE_EVENT));
   } catch {
     /* ignore quota / private mode */
   }
@@ -41,6 +64,7 @@ export function forgetEmail(email: string): string[] {
   const next = listRecentEmails().filter((item) => item !== normalized);
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    window.dispatchEvent(new Event(CHANGE_EVENT));
   } catch {
     /* ignore */
   }

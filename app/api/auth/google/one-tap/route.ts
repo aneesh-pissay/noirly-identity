@@ -1,3 +1,4 @@
+import { mfaRedirect } from "@/lib/security/mfa-redirect";
 import { NextRequest } from "next/server";
 import { AppError, errorResponse } from "@/lib/api/errors";
 import { enforceRateLimit, readFormBody, readJsonBody } from "@/lib/api/request";
@@ -60,6 +61,9 @@ export async function POST(request: NextRequest) {
         );
       }
 
+      const cookieName = process.env.NODE_ENV === "production" ? "__Host-noirly_google_nonce" : "noirly_google_nonce";
+      const nonce = request.cookies.get(cookieName)?.value;
+      if (!nonce || parsed.nonce !== nonce) throw new AppError("Restart Google sign-in", 403, "csrf_failed");
       const profile = await verifyGoogleIdToken({
         credential: parsed.credential,
         nonce: parsed.nonce,
@@ -86,6 +90,10 @@ export async function POST(request: NextRequest) {
       return response;
     });
   } catch (error) {
+    if (!(request.headers.get("content-type") ?? "").includes("application/json")) {
+      const mfa = mfaRedirect(error, returnTo);
+      if (mfa) return mfa;
+    }
     const accept = request.headers.get("accept") ?? "";
     const isForm = !(request.headers.get("content-type") ?? "").includes("application/json");
     if (isForm && error instanceof AppError && !accept.includes("application/json")) {

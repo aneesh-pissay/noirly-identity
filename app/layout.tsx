@@ -1,3 +1,4 @@
+import { headers } from "next/headers";
 import type { Metadata } from "next";
 import { NoirlyHead, noirlyFontClassName } from "@noirly-dev/ui";
 import { NoirlyExperience } from "@noirly-dev/ui/experience";
@@ -23,11 +24,12 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
   return (
     <html
       lang="en"
@@ -36,7 +38,7 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <head>
-        <NoirlyHead themeId="gold" />
+        <NoirlyHead themeId="gold" nonce={nonce} />
       </head>
       <body className={`${noirlyFontClassName} flex min-h-dvh flex-col antialiased`}>
         <NoirlyExperience mark="Noirly Identity" pageTransition={false}>

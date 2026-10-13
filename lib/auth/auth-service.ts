@@ -1,3 +1,6 @@
+import { isBlockedUser } from "@/lib/auth/user-policy";
+import { requireSecondFactor, type MobileMfaContext } from "@/lib/security/mfa";
+import { consumeRateLimit } from "@/lib/security/shared-rate-limit";
 import { AppError } from "@/lib/api/errors";
 import {
   issueEmailVerification,
@@ -38,7 +41,7 @@ type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
 
 export async function registerUser(
   input: RegisterInput,
-  meta: { ipAddress?: string | null; userAgent?: string | null },
+  meta: { ipAddress?: string | null; userAgent?: string | null; mobileMfa?: MobileMfaContext },
 ): Promise<{ user: PublicUser; sessionToken: string }> {
   const email = normalizeEmail(input.email);
   const existing = await User.findOne({ email });
@@ -76,11 +79,14 @@ export async function registerUser(
 
 export async function loginUser(
   input: LoginInput,
-  meta: { ipAddress?: string | null; userAgent?: string | null },
+  meta: { ipAddress?: string | null; userAgent?: string | null; mobileMfa?: MobileMfaContext },
 ): Promise<{ user: PublicUser; sessionToken: string }> {
   const env = getEnv();
   const email = normalizeEmail(input.email);
+  if (env.NODE_ENV === "production" && email === "dev@noirly.test") throw new AppError("Invalid email or password", 401, "invalid_credentials");
   const attemptKey = `${meta.ipAddress ?? "unknown"}:${email}`;
+  const accountLimit = await consumeRateLimit(`login-account:${email}`, env.LOGIN_MAX_ATTEMPTS, env.LOGIN_WINDOW_SECONDS);
+  if (!accountLimit.allowed) throw new AppError("Too many login attempts. Try again later.", 429, "rate_limited", { retryAfterSeconds: accountLimit.retryAfterSeconds });
 
   const attempt = checkLoginAttempts(
     attemptKey,
@@ -116,7 +122,7 @@ export async function loginUser(
     throw new AppError("Invalid email or password", 401, "invalid_credentials");
   }
 
-  if (user.status === "disabled") {
+  if (isBlockedUser(user)) {
     throw new AppError("Invalid email or password", 401, "invalid_credentials");
   }
 
@@ -129,6 +135,8 @@ export async function loginUser(
   }
 
   clearLoginAttempts(attemptKey);
+
+  await requireSecondFactor(user._id.toString(), meta.mobileMfa);
 
   user.lastLoginAt = new Date();
   await user.save();
@@ -157,7 +165,7 @@ export async function getCurrentUser(
     return null;
   }
   const user = await User.findById(ctx.userId).select("+passwordHash").lean();
-  if (!user || user.status === "disabled") {
+  if (!user || isBlockedUser(user)) {
     return null;
   }
   return toPublicUser(user);
@@ -186,7 +194,7 @@ export async function updateUserProfile(
   }
 
   const user = await User.findById(ctx.userId).select("+passwordHash");
-  if (!user || user.status === "disabled") {
+  if (!user || isBlockedUser(user)) {
     throw new AppError("Authentication required", 401, "unauthorized");
   }
 
@@ -210,7 +218,7 @@ export async function changeUserPassword(
   }
 
   const user = await User.findById(ctx.userId).select("+passwordHash");
-  if (!user || user.status === "disabled") {
+  if (!user || isBlockedUser(user)) {
     throw new AppError("Authentication required", 401, "unauthorized");
   }
 
@@ -252,7 +260,7 @@ export async function resendEmailVerification(email: string): Promise<{
   const user = await User.findOne({ email: normalized });
 
   // Always succeed-shaped (aside from cooldown) to reduce account enumeration.
-  if (!user || user.status === "disabled" || user.emailVerified) {
+  if (!user || isBlockedUser(user) || user.emailVerified) {
     return { cooldownSeconds: env.RESEND_VERIFICATION_COOLDOWN_SECONDS };
   }
 
@@ -275,7 +283,7 @@ export async function resetUserPassword(
   }
 
   const user = await User.findById(consumed.userId).select("+passwordHash");
-  if (!user || user.status === "disabled") {
+  if (!user || isBlockedUser(user)) {
     throw new AppError("Invalid or expired reset token", 400, "invalid_token");
   }
 
@@ -296,7 +304,7 @@ export async function requireAuthContext(sessionToken: string | null) {
     throw new AppError("Authentication required", 401, "unauthorized");
   }
   const user = await User.findById(ctx.userId);
-  if (!user || user.status === "disabled") {
+  if (!user || isBlockedUser(user)) {
     throw new AppError("Authentication required", 401, "unauthorized");
   }
   return { ...ctx, user };

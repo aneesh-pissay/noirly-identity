@@ -93,14 +93,13 @@ export function GoogleOneTap({
 
   useEffect(() => {
     if (!clientId) return;
-    const nonce =
-      typeof crypto !== "undefined" && "randomUUID" in crypto
-        ? crypto.randomUUID()
-        : String(Date.now());
     let cancelled = false;
 
-    void loadGsi()
-      .then((accounts) => {
+    void Promise.all([loadGsi(), fetch("/api/auth/google/nonce", { credentials: "same-origin" }).then(async (response) => {
+      if (!response.ok) throw new Error("Google sign-in unavailable");
+      return response.json() as Promise<{ nonce: string }>;
+    })])
+      .then(([accounts, { nonce }]) => {
         if (cancelled) return;
         const inPopup =
           popup ||

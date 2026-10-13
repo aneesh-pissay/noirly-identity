@@ -1,3 +1,4 @@
+import { isBlockedUser } from "@/lib/auth/user-policy";
 import { AppError } from "@/lib/api/errors";
 import { getEnv } from "@/lib/config/env";
 import { sendEmail } from "@/lib/email/email-service";
@@ -99,7 +100,7 @@ export async function verifyEmailToken(
   }
 
   const user = await User.findById(record.userId);
-  if (!user || user.status === "disabled") {
+  if (!user || isBlockedUser(user)) {
     return { status: "invalid" };
   }
 
@@ -127,7 +128,7 @@ export async function issuePasswordReset(
   const env = getEnv();
   const user = await User.findOne({ email: email.trim().toLowerCase() });
 
-  if (!user || user.status === "disabled") {
+  if (!user || isBlockedUser(user)) {
     return { issued: true };
   }
 

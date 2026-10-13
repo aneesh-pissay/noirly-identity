@@ -37,6 +37,9 @@ async function upsertConfidentialClient(input: {
 }
 
 async function main() {
+  if (process.env.NODE_ENV !== "development" || process.env.ALLOW_DEVELOPMENT_SEED !== "true") {
+    throw new Error("Development seed requires NODE_ENV=development and ALLOW_DEVELOPMENT_SEED=true");
+  }
   const uri = process.env.MONGODB_URI;
   if (!uri) {
     throw new Error("MONGODB_URI is required. Run npm run env:generate first.");
@@ -46,7 +49,8 @@ async function main() {
   await mongoose.connect(uri, dbName ? { dbName } : undefined);
 
   const email = "dev@noirly.test";
-  const password = "NoirlyDev1!";
+  const password = process.env.DEV_SEED_PASSWORD;
+  if (!password || password.length < 16) throw new Error("Set a unique DEV_SEED_PASSWORD of at least 16 characters");
   let user = await User.findOne({ email });
   if (!user) {
     user = await User.create({
@@ -64,7 +68,7 @@ async function main() {
     console.log("Test user already exists");
   }
 
-  const crm = await upsertConfidentialClient({
+  await upsertConfidentialClient({
     clientId: "noirly-crm",
     name: "NoirlyCRM",
     description: "Development OAuth client for Noirly CRM",
@@ -73,7 +77,7 @@ async function main() {
     requireConsent: true,
   });
 
-  const flow = await upsertConfidentialClient({
+  await upsertConfidentialClient({
     clientId: "noirly-flow",
     name: "NoirlyFlow",
     description: "Development OAuth client for Noirly Flow",
@@ -82,21 +86,7 @@ async function main() {
     requireConsent: false,
   });
 
-  console.log("\n=== Seed complete ===");
-  console.log("Test user email:", email);
-  console.log("Test user password:", password);
-  console.log("\nNoirlyCRM");
-  console.log("  client_id:", crm.clientId);
-  console.log("  client_secret:", crm.clientSecret);
-  console.log("  redirect_uri:", crm.redirectUri);
-  console.log("\nNoirlyFlow");
-  console.log("  client_id:", flow.clientId);
-  console.log("  client_secret:", flow.clientSecret);
-  console.log("  redirect_uri:", flow.redirectUri);
-  console.log("  Put these in noirly-flow/.env.local:");
-  console.log(`  AUTH_NOIRLY_CLIENT_ID=${flow.clientId}`);
-  console.log(`  AUTH_NOIRLY_CLIENT_SECRET=${flow.clientSecret}`);
-  console.log("=====================\n");
+  console.log("Development seed complete. Credentials are not logged. Use client:register for client provisioning.");
 
   await mongoose.disconnect();
 }

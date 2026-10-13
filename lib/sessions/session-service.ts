@@ -8,6 +8,7 @@ export type CreateSessionInput = {
   ipAddress?: string | null;
   userAgent?: string | null;
   ttlSeconds?: number;
+  securityVerified?: boolean;
 };
 
 /** Lean session fields callers need after validation. */
@@ -37,6 +38,7 @@ export async function createSession(
 
   const session = await Session.create({
     userId: input.userId,
+    securityVerifiedAt: input.securityVerified ? new Date() : null,
     tokenHash: hashToken(token),
     expiresAt,
     lastActivityAt: new Date(),

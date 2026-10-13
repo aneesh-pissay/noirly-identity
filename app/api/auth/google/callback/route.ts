@@ -1,3 +1,4 @@
+import { mfaRedirect } from "@/lib/security/mfa-redirect";
 import { NextRequest } from "next/server";
 import { errorResponse } from "@/lib/api/errors";
 import { enforceRateLimit } from "@/lib/api/request";
@@ -69,6 +70,8 @@ export async function GET(request: NextRequest) {
       return response;
     });
   } catch (error) {
+    const mfa = mfaRedirect(error, readOAuthState(request.cookies.get(GOOGLE_STATE_COOKIE)?.value)?.returnTo);
+    if (mfa) return mfa;
     return errorResponse(error);
   }
 }

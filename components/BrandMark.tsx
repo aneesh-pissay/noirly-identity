@@ -139,6 +139,18 @@ export function BrandMark({
   className,
 }: BrandMarkProps) {
   const [markup, setMarkup] = useState<string | null>(null);
+  const [palette, setPalette] = useState({ accent: "#c5a55a", background: "#101010" });
+  useEffect(() => {
+    const update = () => {
+      const style = getComputedStyle(document.documentElement);
+      setPalette({ accent: style.getPropertyValue("--accent").trim() || "#c5a55a", background: style.getPropertyValue("--brand-knockout").trim() || style.getPropertyValue("--bg").trim() || "#101010" });
+    };
+    update();
+    const observer = new MutationObserver(update);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class", "style", "data-theme"] });
+    return () => observer.disconnect();
+  }, []);
+
 
   useEffect(() => {
     let active = true;
@@ -173,7 +185,9 @@ export function BrandMark({
 
   return (
     <span className={cn("brand-mark h-9 w-9", className)} role="img" aria-label={name}>
-      <span className="brand-mark-inner" dangerouslySetInnerHTML={{ __html: markup }} />
+      {/* SVG stays in an image context, never the document DOM. */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img className="brand-mark-inner" src={`data:image/svg+xml,${encodeURIComponent(markup.replaceAll(KNOCKOUT, palette.background).replaceAll(ACCENT, palette.accent))}`} alt="" />
     </span>
   );
 }

@@ -1,3 +1,5 @@
+import { isBlockedUser } from "@/lib/auth/user-policy";
+import { requireSecondFactor, type MobileMfaContext } from "@/lib/security/mfa";
 import { createHash } from "node:crypto";
 import { createRemoteJWKSet, jwtVerify } from "jose";
 import { AppError } from "@/lib/api/errors";
@@ -132,7 +134,7 @@ export async function exchangeGoogleCode(input: {
 
 export async function loginWithGoogleProfile(
   profile: GoogleProfile,
-  meta: { ipAddress?: string | null; userAgent?: string | null },
+  meta: { ipAddress?: string | null; userAgent?: string | null; mobileMfa?: MobileMfaContext },
 ): Promise<{ user: PublicUser; sessionToken: string }> {
   const linked = await LinkedAccount.findOne({
     provider: "google",
@@ -146,7 +148,7 @@ export async function loginWithGoogleProfile(
   if (!user) {
     user = await User.findOne({ email: profile.email }).select("+passwordHash");
     if (user) {
-      if (user.status === "disabled") {
+      if (isBlockedUser(user)) {
         throw new AppError("Unable to sign in", 401, "invalid_credentials");
       }
       await LinkedAccount.create({
@@ -176,7 +178,7 @@ export async function loginWithGoogleProfile(
     });
   }
 
-  if (user.status === "disabled") {
+  if (isBlockedUser(user)) {
     throw new AppError("Unable to sign in", 401, "invalid_credentials");
   }
 
@@ -187,6 +189,8 @@ export async function loginWithGoogleProfile(
   if (!user.avatarUrl && profile.avatarUrl) {
     user.avatarUrl = profile.avatarUrl;
   }
+  await requireSecondFactor(user._id.toString(), meta.mobileMfa);
+
   user.lastLoginAt = new Date();
   await user.save();
 
@@ -279,7 +283,6 @@ export async function verifyGoogleIdToken(input: {
 
   if (
     input.nonce &&
-    typeof payload.nonce === "string" &&
     payload.nonce !== input.nonce
   ) {
     throw new AppError("Google sign-in failed", 401, "google_auth_failed");

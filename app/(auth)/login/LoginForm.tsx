@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, Suspense, useEffect, useState } from "react";
+import { FormEvent, Suspense, useEffect, useState, useSyncExternalStore } from "react";
 import { useSearchParams } from "next/navigation";
 import { AuthShell } from "@noirly-dev/ui";
 import { AuthLogo } from "@/components/AuthLogo";
@@ -13,11 +13,12 @@ import {
   SubmitButton,
   TextLink,
 } from "@/components/auth-ui";
+import { PasskeySignIn } from "@/components/security/PasskeySignIn";
 import { GoogleOneTap } from "@/components/GoogleOneTap";
 import { OrDivider } from "@/components/OrDivider";
 import { getCsrf } from "@/lib/auth/csrf-client";
 import { goReturnTo, isPopupLogin, withPopup, withReturnTo } from "@/lib/auth/return-to";
-import { forgetEmail, listRecentEmails, rememberEmail } from "@/lib/auth/recent-emails";
+import { forgetEmail, recentEmailsSnapshot, rememberEmail, serverRecentEmailsSnapshot, subscribeRecentEmails } from "@/lib/auth/recent-emails";
 
 export function LoginForm({
   popup = false,
@@ -36,14 +37,13 @@ export function LoginForm({
   const [csrf, setCsrf] = useState("");
   const [googleEnabled, setGoogleEnabled] = useState(false);
   const [googleClientId, setGoogleClientId] = useState<string | null>(null);
-  const [recentEmails, setRecentEmails] = useState<string[]>([]);
+  const recentEmails = JSON.parse(useSyncExternalStore(subscribeRecentEmails, recentEmailsSnapshot, serverRecentEmailsSnapshot)) as string[];
   const [email, setEmail] = useState(currentEmail ?? "");
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     void getCsrf().then(setCsrf);
     if (currentEmail) rememberEmail(currentEmail);
-    setRecentEmails(listRecentEmails());
     void fetch("/api/auth/oauth-providers")
       .then((res) => res.json() as Promise<{ google?: boolean; googleClientId?: string | null }>)
       .then((data) => {
@@ -75,6 +75,10 @@ export function LoginForm({
       });
       if (!res.ok) {
         const data = (await res.json()) as { message?: string; error?: string };
+        if (data.error === "mfa_required") {
+          window.location.assign(withReturnTo("/mfa", returnTo));
+          return;
+        }
         if (data.error === "email_not_verified") {
           setUnverifiedEmail(submittedEmail.trim().toLowerCase());
           setError(
@@ -172,7 +176,7 @@ export function LoginForm({
                 type="button"
                 aria-label={`Remove ${item}`}
                 className="shrink-0 text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
-                onClick={() => setRecentEmails(forgetEmail(item))}
+                onClick={() => forgetEmail(item)}
               >
                 ×
               </button>
@@ -203,10 +207,12 @@ export function LoginForm({
           <>
             {accountsBlock}
             {googleBlock}
+          <PasskeySignIn returnTo={returnTo} />
           </>
         ) : (
           <>
             {googleBlock}
+          <PasskeySignIn returnTo={returnTo} />
             {accountsBlock}
           </>
         )}

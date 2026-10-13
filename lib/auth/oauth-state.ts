@@ -48,7 +48,7 @@ export function safeReturnTo(candidate: string | null, appUrl: string): string {
   if (!candidate) {
     return "/";
   }
-  if (candidate.startsWith("/") && !candidate.startsWith("//")) {
+  if (candidate.startsWith("/") && !candidate.startsWith("//") && !candidate.includes("\\")) {
     return candidate;
   }
   try {

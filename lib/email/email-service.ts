@@ -27,8 +27,6 @@ export class DevelopmentEmailProvider implements EmailProvider {
 
     // Development-only: never log raw verification/reset tokens.
     console.info("[email:dev]", {
-      to: message.to,
-      subject: message.subject,
       kind: message.meta?.kind ?? "generic",
       previewUrl: preview || undefined,
       note: "Raw tokens are redacted. Open the emailed link (or SMTP inbox) to verify.",

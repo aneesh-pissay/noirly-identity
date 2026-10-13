@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { SecuritySettings } from "@/components/security/SecuritySettings";
 import { AccountSettings } from "@/components/AccountSettings";
 import { getRequestUser } from "@/lib/auth/request-user";
 
@@ -9,5 +10,5 @@ export default async function AccountPage() {
     redirect("/login?return_to=/account");
   }
 
-  return <AccountSettings initialUser={user} />;
+  return <><AccountSettings initialUser={user} /><SecuritySettings /></>;
 }

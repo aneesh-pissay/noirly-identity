@@ -13,7 +13,7 @@ Authentication is security-critical. This document summarizes controls and opera
 
 - Confidential client secrets are hashed with Argon2id
 - Public clients have no secret and must use PKCE
-- Secrets are only shown at creation/seed time
+- Secrets are only shown during explicit client provisioning; the development seed does not print credentials
 
 ## Sessions
 
@@ -38,6 +38,7 @@ Authentication is security-critical. This document summarizes controls and opera
 
 - Generic per-IP rate limits on sensitive endpoints
 - Login attempt counters with lockout windows
+- Shared MongoDB counters enforce limits across app instances and fail closed when unavailable
 - Prefer generic auth error messages where appropriate
 
 ## Headers
@@ -63,7 +64,7 @@ Never log:
 - private keys
 - raw session tokens
 
-Development email provider may log verification/reset **URLs** for local testing. Those tokens are single-use and short-lived; still avoid shipping that provider to production.
+Development email previews redact sensitive tokens. Production requires the SMTP provider. Do not log full email payloads or recipient addresses.
 
 For real delivery, set `EMAIL_PROVIDER=smtp` and configure Nodemailer SMTP settings (`SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `EMAIL_FROM`). Never log SMTP passwords.
 
@@ -88,3 +89,14 @@ Verification and password-reset tokens:
 - User emails are normalized to lowercase and unique-indexed
 - TTL indexes expire auth codes, tokens, and timed records where appropriate
 - Organization models exist for future multi-tenant expansion without changing core authN
+
+## MFA and passkeys
+
+- Authenticator enrollment requires a recent sign-in and confirmation of a valid code.
+- Authenticator secrets are encrypted with AES-256-GCM using `ENCRYPTION_KEY`; recovery codes are hashed and consumed atomically.
+- Passkeys require user verification and validate the expected origin, RP ID, challenge and credential counter. A verified passkey completes MFA.
+- Enabling either method makes subsequent password and Google sign-ins require a second factor. Passkeys can also sign in directly.
+- Security changes revoke other sessions and OAuth tokens. Recovery codes are displayed once.
+- MFA is optional per account; enrollment is not mandatory for every user.
+
+See [SECURITY-ROLLOUT.md](./SECURITY-ROLLOUT.md) for deployment requirements and limitations.

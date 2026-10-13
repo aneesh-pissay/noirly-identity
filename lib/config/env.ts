@@ -53,6 +53,18 @@ const envSchema = z
     PRIVACY_CONTACT_EMAIL: z.string().email().optional(),
   })
   .superRefine((env, ctx) => {
+    if (env.NODE_ENV === "production") {
+      for (const key of ["SESSION_SECRET", "ENCRYPTION_KEY"] as const) {
+        if (Buffer.byteLength(env[key]) < 32 || new Set(env[key]).size < 10 || /change.?me|replace.?me|example|your.?secret/i.test(env[key])) {
+          ctx.addIssue({ code: "custom", path: [key], message: "Use a unique random secret of at least 32 bytes" });
+        }
+      }
+      if (env.SESSION_SECRET === env.ENCRYPTION_KEY) ctx.addIssue({ code: "custom", path: ["ENCRYPTION_KEY"], message: "Encryption and session secrets must be different" });
+      for (const key of ["APP_URL", "OIDC_ISSUER"] as const) {
+        if (!env[key].startsWith("https://")) ctx.addIssue({ code: "custom", path: [key], message: "HTTPS is required in production" });
+      }
+      if (env.EMAIL_PROVIDER !== "smtp") ctx.addIssue({ code: "custom", path: ["EMAIL_PROVIDER"], message: "Use SMTP in production" });
+    }
     if (env.EMAIL_PROVIDER !== "smtp") {
       return;
     }

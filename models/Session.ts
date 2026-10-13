@@ -20,6 +20,7 @@ const sessionSchema = new Schema(
     ipAddress: { type: String, default: null },
     userAgent: { type: String, default: null },
     revokedAt: { type: Date, default: null },
+    securityVerifiedAt: { type: Date, default: null },
   },
   {
     timestamps: false,

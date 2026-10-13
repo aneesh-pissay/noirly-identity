@@ -1,3 +1,4 @@
+import { isBlockedUser } from "@/lib/auth/user-policy";
 import { OAuthError } from "@/lib/api/errors";
 import { resolveAccessToken } from "@/lib/tokens/token-service";
 import { User } from "@/models/User";
@@ -17,7 +18,7 @@ export async function buildUserInfo(accessToken: string) {
   }
 
   const user = await User.findById(token.userId);
-  if (!user || user.status === "disabled") {
+  if (!user || isBlockedUser(user)) {
     throw new OAuthError("invalid_token", "Access token is invalid or expired", 401);
   }
 

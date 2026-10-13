@@ -1,3 +1,4 @@
+import { isBlockedUser } from "@/lib/auth/user-policy";
 import { AppError } from "@/lib/api/errors";
 import { getEnv } from "@/lib/config/env";
 import { getActiveClient } from "@/lib/oauth/clients";
@@ -70,7 +71,7 @@ export async function mintMobileTokens(input: {
   }
 
   const user = await User.findById(sessionCtx.userId);
-  if (!user || user.status === "disabled") {
+  if (!user || isBlockedUser(user)) {
     throw new AppError("User is not available", 401, "invalid_credentials");
   }
 

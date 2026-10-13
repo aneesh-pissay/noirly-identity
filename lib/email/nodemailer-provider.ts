@@ -52,9 +52,6 @@ export class NodemailerEmailProvider implements EmailProvider {
       console.error("[email:smtp] send failed", {
         code: err.code,
         responseCode: err.responseCode,
-        message: err.message,
-        to: message.to,
-        subject: message.subject,
       });
       throw new Error("Failed to send email");
     }
