@@ -39,6 +39,32 @@ export function stripAuthorizePrompt(candidate: string): string {
   }
 }
 
+/**
+ * `candidate` as a path on `origin`, or null if it would leave that origin.
+ *
+ * Resolved with the URL parser browsers use, rather than by inspecting the
+ * string: browsers drop tabs and newlines and read `\` as `/`, so text like
+ * "/<tab>/evil.example" looks relative but navigates to evil.example.
+ */
+export function sameOriginPath(candidate: string, origin: string): string | null {
+  let base: URL;
+  try {
+    base = new URL(origin);
+  } catch {
+    return null;
+  }
+  // Anything a browser would strip or reinterpret has no place in a return path.
+  if (/[\u0000-\u001f\u007f\\]/.test(candidate)) return null;
+  try {
+    const url = new URL(candidate, base);
+    if (url.protocol !== "http:" && url.protocol !== "https:") return null;
+    if (url.origin !== base.origin) return null;
+    return `${url.pathname}${url.search}${url.hash}`;
+  } catch {
+    return null;
+  }
+}
+
 export function sanitizeReturnTo(
   candidate: string | null | undefined,
   origin?: string,
@@ -46,20 +72,10 @@ export function sanitizeReturnTo(
   if (!candidate) return null;
   const allowedOrigin =
     origin ?? (typeof window !== "undefined" ? window.location.origin : "");
-
-  if (candidate.startsWith("/") && !candidate.startsWith("//") && !candidate.startsWith("/\\")) {
-    return candidate;
-  }
-
-  try {
-    const url = new URL(candidate);
-    if (url.protocol !== "http:" && url.protocol !== "https:") return null;
-    if (allowedOrigin && url.origin !== allowedOrigin) return null;
-    if (!allowedOrigin) return null;
-    return `${url.pathname}${url.search}${url.hash}`;
-  } catch {
-    return null;
-  }
+  if (allowedOrigin) return sameOriginPath(candidate, allowedOrigin);
+  // No origin to compare with (server code that didn't pass one): only a path
+  // that stays put on any origin, checked against a placeholder.
+  return candidate.startsWith("/") ? sameOriginPath(candidate, "https://noirly.invalid") : null;
 }
 
 export function readOauthReturnCookie(): string | null {

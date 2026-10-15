@@ -18,7 +18,8 @@ export async function buildUserInfo(accessToken: string) {
   }
 
   const user = await User.findById(token.userId);
-  if (!user || isBlockedUser(user)) {
+  // Tokens issued to unverified accounts before this check existed stop working.
+  if (!user || isBlockedUser(user) || !user.emailVerified) {
     throw new OAuthError("invalid_token", "Access token is invalid or expired", 401);
   }
 

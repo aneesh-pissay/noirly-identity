@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { errorResponse, oauthRedirectError } from "@/lib/api/errors";
+import { AppError, errorResponse, oauthRedirectError } from "@/lib/api/errors";
 import { readFormBody } from "@/lib/api/request";
 import { withDb } from "@/lib/api/with-db";
 import { getEnv, isProduction } from "@/lib/config/env";
@@ -132,15 +132,26 @@ async function handleAuthorize(request: NextRequest) {
         return redirectGet(buildConsentRedirect(request.nextUrl.searchParams));
       }
 
-      const { code } = await createAuthorizationCode({
-        sessionToken,
-        clientId: params.client_id,
-        redirectUri: params.redirect_uri,
-        scope: validated.scopeString,
-        codeChallenge: params.code_challenge,
-        codeChallengeMethod: params.code_challenge_method,
-        nonce: params.nonce,
-      });
+      let code: string;
+      try {
+        ({ code } = await createAuthorizationCode({
+          sessionToken,
+          clientId: params.client_id,
+          redirectUri: params.redirect_uri,
+          scope: validated.scopeString,
+          codeChallenge: params.code_challenge,
+          codeChallengeMethod: params.code_challenge_method,
+          nonce: params.nonce,
+        }));
+      } catch (error) {
+        // Signed up but not verified yet: verify first, then come back here.
+        if (error instanceof AppError && error.code === "email_not_verified") {
+          const checkEmail = new URL("/check-email", getEnv().APP_URL);
+          checkEmail.searchParams.set("return_to", authorizeUrl);
+          return redirectGet(checkEmail);
+        }
+        throw error;
+      }
 
       const redirect = new URL(params.redirect_uri);
       redirect.searchParams.set("code", code);

@@ -10,7 +10,10 @@ import {
   issueRefreshToken,
   rotateRefreshToken,
 } from "@/lib/tokens/token-service";
+import type { Types } from "mongoose";
+import { AccessToken } from "@/models/AccessToken";
 import { AuthorizationCode } from "@/models/AuthorizationCode";
+import { RefreshToken } from "@/models/RefreshToken";
 import { User } from "@/models/User";
 import { Session } from "@/models/Session";
 import type { OAuthClientDocument } from "@/models/OAuthClient";
@@ -63,6 +66,28 @@ async function authenticateClient(input: {
   return client;
 }
 
+/**
+ * A code presented twice may have leaked, so the tokens it already produced
+ * (same client, same session, since the code was issued) are revoked
+ * (RFC 6749 §4.1.2).
+ */
+async function revokeTokensFromCode(record: {
+  clientId: string;
+  sessionId: Types.ObjectId;
+  createdAt?: Date;
+}) {
+  const filter = {
+    clientId: record.clientId,
+    sessionId: record.sessionId,
+    revokedAt: null,
+    ...(record.createdAt ? { createdAt: { $gte: record.createdAt } } : {}),
+  };
+  await Promise.all([
+    AccessToken.updateMany(filter, { $set: { revokedAt: new Date() } }),
+    RefreshToken.updateMany(filter, { $set: { revokedAt: new Date() } }),
+  ]);
+}
+
 export async function exchangeAuthorizationCode(input: {
   code: string;
   redirectUri: string;
@@ -82,6 +107,7 @@ export async function exchangeAuthorizationCode(input: {
   }
 
   if (record.usedAt) {
+    await revokeTokensFromCode(record);
     throw new OAuthError("invalid_grant", "Authorization code already used");
   }
 
@@ -111,11 +137,19 @@ export async function exchangeAuthorizationCode(input: {
     throw new OAuthError("invalid_grant", "PKCE verification failed");
   }
 
-  record.usedAt = new Date();
-  await record.save();
+  // Claim the code atomically: of two requests racing with the same code, only
+  // one gets tokens. The loser is treated like any reuse below.
+  const claimed = await AuthorizationCode.findOneAndUpdate(
+    { _id: record._id, usedAt: null },
+    { $set: { usedAt: new Date() } },
+  );
+  if (!claimed) {
+    await revokeTokensFromCode(record);
+    throw new OAuthError("invalid_grant", "Authorization code already used");
+  }
 
   const user = await User.findById(record.userId);
-  if (!user || isBlockedUser(user)) {
+  if (!user || isBlockedUser(user) || !user.emailVerified) {
     throw new OAuthError("invalid_grant", "User is not available");
   }
 
@@ -194,7 +228,7 @@ export async function exchangeRefreshToken(input: {
   }
 
   const user = await User.findById(previous.userId);
-  if (!user || isBlockedUser(user)) {
+  if (!user || isBlockedUser(user) || !user.emailVerified) {
     throw new OAuthError("invalid_grant", "User is not available");
   }
 

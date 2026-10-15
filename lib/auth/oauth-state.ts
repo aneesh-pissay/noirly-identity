@@ -1,3 +1,4 @@
+import { sameOriginPath } from "@/lib/auth/return-to";
 import { hmacSha256, safeEqualHex } from "@/lib/security/crypto";
 
 export type OAuthStatePayload = {
@@ -48,17 +49,5 @@ export function safeReturnTo(candidate: string | null, appUrl: string): string {
   if (!candidate) {
     return "/";
   }
-  if (candidate.startsWith("/") && !candidate.startsWith("//") && !candidate.includes("\\")) {
-    return candidate;
-  }
-  try {
-    const url = new URL(candidate);
-    const app = new URL(appUrl);
-    if (url.origin === app.origin) {
-      return `${url.pathname}${url.search}${url.hash}`;
-    }
-  } catch {
-    return "/";
-  }
-  return "/";
+  return sameOriginPath(candidate, appUrl) ?? "/";
 }

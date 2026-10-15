@@ -77,6 +77,15 @@ export async function mobileRegister(
     },
     meta,
   );
+  if (!result.user.emailVerified) {
+    // The account exists and the email is on its way; tokens come at sign-in
+    // once the address is proven. The SDK shows this message.
+    throw new AppError(
+      "Account created. Check your email to verify your address, then sign in.",
+      403,
+      "email_not_verified",
+    );
+  }
   return mintMobileTokens({
     clientId: client.clientId,
     sessionToken: result.sessionToken,

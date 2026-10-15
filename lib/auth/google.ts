@@ -6,9 +6,15 @@ import { AppError } from "@/lib/api/errors";
 import { normalizeEmail, toPublicUser } from "@/lib/auth/user-mapper";
 import { getEnv } from "@/lib/config/env";
 import { generateSecureToken } from "@/lib/security/crypto";
-import { createSession } from "@/lib/sessions/session-service";
+import { createSession, revokeAllUserSessions } from "@/lib/sessions/session-service";
+import { AccessToken } from "@/models/AccessToken";
+import { AuthorizationCode } from "@/models/AuthorizationCode";
 import { LinkedAccount } from "@/models/LinkedAccount";
-import { User } from "@/models/User";
+import { MobileBrowserLogin } from "@/models/MobileBrowserLogin";
+import { PasswordResetToken } from "@/models/PasswordResetToken";
+import { RefreshToken } from "@/models/RefreshToken";
+import { Mfa, Passkey, SecurityChallenge } from "@/models/SecurityCredential";
+import { User, type UserDocument } from "@/models/User";
 import type { PublicUser } from "@/types";
 
 export type GoogleProfile = {
@@ -132,6 +138,28 @@ export async function exchangeGoogleCode(input: {
   };
 }
 
+/**
+ * Clears every way into an account that came from its unverified registrant:
+ * password, authenticator, passkeys, other linked logins, sessions and tokens.
+ */
+async function discardUnverifiedRegistration(user: Pick<UserDocument, "_id" | "passwordHash">) {
+  // In memory too: the caller saves this document again below.
+  user.passwordHash = null;
+  await Promise.all([
+    User.updateOne({ _id: user._id }, { $set: { passwordHash: null } }),
+    Mfa.deleteMany({ userId: user._id }),
+    Passkey.deleteMany({ userId: user._id }),
+    SecurityChallenge.deleteMany({ userId: user._id }),
+    LinkedAccount.deleteMany({ userId: user._id }),
+    PasswordResetToken.updateMany({ userId: user._id, usedAt: null }, { $set: { usedAt: new Date() } }),
+    MobileBrowserLogin.deleteMany({ userId: user._id }),
+    AccessToken.updateMany({ userId: user._id, revokedAt: null }, { $set: { revokedAt: new Date() } }),
+    RefreshToken.updateMany({ userId: user._id, revokedAt: null }, { $set: { revokedAt: new Date() } }),
+    AuthorizationCode.deleteMany({ userId: user._id }),
+    revokeAllUserSessions(user._id),
+  ]);
+}
+
 export async function loginWithGoogleProfile(
   profile: GoogleProfile,
   meta: { ipAddress?: string | null; userAgent?: string | null; mobileMfa?: MobileMfaContext },
@@ -150,6 +178,12 @@ export async function loginWithGoogleProfile(
     if (user) {
       if (isBlockedUser(user)) {
         throw new AppError("Unable to sign in", 401, "invalid_credentials");
+      }
+      if (!user.emailVerified) {
+        // Nobody ever proved they own this address, so anyone could have
+        // registered it first. Google now proves the owner: drop whatever the
+        // earlier registrant set up, or they keep a way into this account.
+        await discardUnverifiedRegistration(user);
       }
       await LinkedAccount.create({
         userId: user._id,

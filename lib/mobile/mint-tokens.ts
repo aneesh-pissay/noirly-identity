@@ -1,4 +1,4 @@
-import { isBlockedUser } from "@/lib/auth/user-policy";
+import { assertEmailVerified, isBlockedUser } from "@/lib/auth/user-policy";
 import { AppError } from "@/lib/api/errors";
 import { getEnv } from "@/lib/config/env";
 import { getActiveClient } from "@/lib/oauth/clients";
@@ -74,6 +74,7 @@ export async function mintMobileTokens(input: {
   if (!user || isBlockedUser(user)) {
     throw new AppError("User is not available", 401, "invalid_credentials");
   }
+  assertEmailVerified(user);
 
   const env = getEnv();
   await refreshSessionExpiry(sessionCtx.session._id, env.REFRESH_TOKEN_TTL_SECONDS);

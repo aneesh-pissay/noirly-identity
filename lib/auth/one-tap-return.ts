@@ -1,4 +1,4 @@
-import { stripAuthorizePrompt } from "@/lib/auth/return-to";
+import { sameOriginPath, stripAuthorizePrompt } from "@/lib/auth/return-to";
 import { getEnv } from "@/lib/config/env";
 import { OAuthClient } from "@/models/OAuthClient";
 
@@ -10,8 +10,10 @@ export async function resolveOneTapReturnTo(
   const fallback = `${app}/account`;
   if (!candidate) return fallback;
 
-  if (candidate.startsWith("/") && !candidate.startsWith("//")) {
-    return `${app}${stripAuthorizePrompt(candidate)}`;
+  if (/[\u0000-\u001f\u007f\\]/.test(candidate)) return fallback;
+  if (candidate.startsWith("/")) {
+    const path = sameOriginPath(candidate, app);
+    return path ? `${app}${stripAuthorizePrompt(path)}` : fallback;
   }
 
   let url: URL;

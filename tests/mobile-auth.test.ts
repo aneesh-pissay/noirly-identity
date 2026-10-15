@@ -8,6 +8,7 @@ import {
 import { AppError } from "@/lib/api/errors";
 import { createTestClient, createTestUser } from "./helpers";
 import { resolveAccessToken } from "@/lib/tokens/token-service";
+import { User } from "@/models/User";
 
 describe("mobile native auth", () => {
   it("rejects confidential clients", async () => {
@@ -61,14 +62,36 @@ describe("mobile native auth", () => {
       redirectUris: ["noirly-flow://oauth"],
     });
 
-    const registered = await mobileRegister(
-      {
-        client_id: client.clientId,
-        email: "mobile-reg@example.com",
-        password: "StrongPass1!",
-        firstName: "Mobile",
-        lastName: "User",
-      },
+    // Registering creates the account but hands out no tokens until the
+    // address is verified: anyone can register any email.
+    await expect(
+      mobileRegister(
+        {
+          client_id: client.clientId,
+          email: "mobile-reg@example.com",
+          password: "StrongPass1!",
+          firstName: "Mobile",
+          lastName: "User",
+        },
+        { ipAddress: "127.0.0.1", userAgent: "vitest" },
+      ),
+    ).rejects.toMatchObject({ code: "email_not_verified" });
+    expect(await User.exists({ email: "mobile-reg@example.com", emailVerified: false })).toBeTruthy();
+
+    // Signing in before verifying is refused too.
+    await expect(
+      mobileLoginWithPassword(
+        { client_id: client.clientId, email: "mobile-reg@example.com", password: "StrongPass1!" },
+        { ipAddress: "127.0.0.1", userAgent: "vitest" },
+      ),
+    ).rejects.toMatchObject({ code: "email_not_verified" });
+
+    await User.updateOne(
+      { email: "mobile-reg@example.com" },
+      { $set: { emailVerified: true, status: "active" } },
+    );
+    const registered = await mobileLoginWithPassword(
+      { client_id: client.clientId, email: "mobile-reg@example.com", password: "StrongPass1!" },
       { ipAddress: "127.0.0.1", userAgent: "vitest" },
     );
 

@@ -47,7 +47,7 @@ Passkeys and authenticator MFA do not require a paid MFA provider or a new MFA-s
 | `AUTH_NOIRLY_CLIENT_ID`, `AUTH_NOIRLY_CLIENT_SECRET` | Credentials of a production OIDC client registered in Identity. These are not Google credentials. |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, `EMAIL_FROM` | Mail provider settings for Flow invitations; Identity's Vercel variables are not automatically shared with Flow. |
 | `CRON_SECRET` | Random server secret of at least 32 characters for the mention and task email workers. Initial assignment/mention delivery runs after the response. `vercel.json` schedules mention retries daily and overdue task reminders at 03:30 UTC (9 AM India time), beginning the day after the due date. Both use Flow SMTP. |
-| `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME` | Cloudflare R2 account, scoped S3 API credentials and private bucket. |
+| `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME` | Cloudflare R2 account ID, bucket-scoped S3 Object Read & Write credentials, and the private Flow bucket. Browser uploads use short-lived presigned PUTs; configure that bucket's CORS for `PUT`, `Content-Type`, and the exact Flow origin. Add a one-day expiration lifecycle rule for `flow/attachment-uploads/`. |
 | `REALTIME_INTERNAL_URL` | Reachable HTTPS base URL of the realtime backend. Do not use localhost. |
 | `NEXT_PUBLIC_REALTIME_WS_URL` | Public WSS endpoint, for example `wss://your-realtime-domain/ws`. |
 | `REALTIME_JWT_SECRET` | Same strong JWT secret configured on the realtime backend. |
@@ -59,7 +59,23 @@ Register the Flow OIDC callback in Identity as `https://noirly.flow.aneesh-pissa
 
 ## Limits that environment variables do not solve
 
-- **25 MB attachments:** the current implementation proxies uploads/downloads through Flow's API. Vercel documents a 4.5 MB function request/response payload limit. Adding R2 variables does not bypass that limit. Full-size support needs authorized short-lived direct-to-R2 uploads/downloads, with server-side permission checks and post-upload size/content validation, or a backend that supports the payload size. Do not expose the bucket publicly to work around it. [Vercel function limits](https://vercel.com/docs/functions/limitations)
+- **25 MB attachments:** browser uploads go directly to R2 using short-lived signed URLs and server-side size/content checks, bypassing Vercel's function request-body limit. Downloads still proxy through Flow's API and remain subject to Vercel's response payload limit. Do not expose the bucket publicly to work around it. [Vercel function limits](https://vercel.com/docs/functions/limitations)
+
+In Cloudflare, create a private bucket for Flow under R2. Find `R2_ACCOUNT_ID` in R2 Overview; create an R2 API token with **Object Read & Write** access scoped to the Flow bucket and copy its Access Key ID and Secret Access Key once. Set `R2_BUCKET_NAME` to the bucket's exact name. The S3 endpoint is derived from the account ID in the app; no public URL or additional endpoint variable is required. Add this bucket CORS rule, replacing the origin with Flow's exact site origin (scheme + hostname, no trailing slash):
+
+```json
+[
+  {
+    "AllowedOrigins": ["https://your-flow-domain"],
+    "AllowedMethods": ["PUT"],
+    "AllowedHeaders": ["Content-Type"],
+    "ExposeHeaders": [],
+    "MaxAgeSeconds": 3600
+  }
+]
+```
+
+Add a bucket lifecycle rule that expires objects with the `flow/attachment-uploads/` prefix after one day. Those are temporary uploads the user did not finish attaching. See Cloudflare's [R2 token instructions](https://developers.cloudflare.com/r2/api/tokens/), [browser CORS setup](https://developers.cloudflare.com/r2/buckets/cors/), and [object lifecycle rules](https://developers.cloudflare.com/r2/buckets/object-lifecycles/).
 - **Realtime hosting:** Vercel now offers WebSockets in beta. The existing standalone realtime server is not configured as a Vercel function entry point; it needs deployment adaptation and external shared state (the repository includes Redis adapters), or separate hosting. Function-duration limits require reconnect/replay handling. Environment variables alone do not deploy it. [Vercel WebSockets](https://vercel.com/docs/functions/websockets)
 - **Unpatched dependency:** the remaining `braces` advisory has no published patched version. Vercel settings cannot fix it. [Upstream advisory](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm)
 - **Android release/device checks:** APK/AAB signing, Play Console upload and native-device verification happen outside Vercel.

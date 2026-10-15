@@ -1,5 +1,6 @@
 import { OAuthError } from "@/lib/api/errors";
 import { requireAuthContext } from "@/lib/auth/auth-service";
+import { assertEmailVerified } from "@/lib/auth/user-policy";
 import { getEnv } from "@/lib/config/env";
 import {
   assertExactRedirectUri,
@@ -59,6 +60,7 @@ export async function createAuthorizationCode(input: {
   nonce?: string | null;
 }): Promise<{ code: string }> {
   const auth = await requireAuthContext(input.sessionToken);
+  assertEmailVerified(auth.user);
   const env = getEnv();
   const code = generateSecureToken(32);
 
