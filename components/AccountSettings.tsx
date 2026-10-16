@@ -140,6 +140,7 @@ export function AccountSettings({ initialUser }: Props) {
         className="py-8"
         footer={
           <div className="flex flex-wrap items-center justify-center gap-4">
+            <TextLink href="/spaces">Spaces</TextLink>
             {user.roles.includes("admin") ? (
               <TextLink href="/clients">OAuth clients</TextLink>
             ) : null}

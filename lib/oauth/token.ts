@@ -38,7 +38,7 @@ function parseBasicAuth(header: string | null): {
   }
 }
 
-async function authenticateClient(input: {
+export async function authenticateClient(input: {
   clientId?: string;
   clientSecret?: string;
   authorizationHeader: string | null;

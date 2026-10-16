@@ -16,6 +16,7 @@
     "client:ensure": "tsx scripts/ensure-oauth-client.ts",
     "client:list": "tsx scripts/list-clients.ts",
     "client:promote": "tsx scripts/promote-oauth-from-test.ts",
+    "client:grant-spaces": "tsx scripts/grant-spaces.ts",
     "user:promote-admin": "tsx scripts/promote-admin.ts",
     "email:test": "tsx scripts/test-smtp.ts",
     "account:retry-deletions": "tsx scripts/retry-deletion-notices.ts"

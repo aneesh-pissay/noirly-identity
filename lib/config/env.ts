@@ -49,6 +49,8 @@ const envSchema = z
     GOOGLE_MOBILE_CLIENT_IDS: z.string().optional(),
     /** `clientId=url` pairs: apps told when an account is deleted (lib/account/deletion-webhooks.ts). */
     ACCOUNT_DELETION_WEBHOOKS: z.string().optional(),
+    /** clientId=url pairs told when a space changes (see lib/spaces/space-webhooks.ts). */
+    SPACE_WEBHOOKS: z.string().optional(),
     /** Shown on /privacy and /delete-account as the place to send privacy requests. */
     PRIVACY_CONTACT_EMAIL: z.string().email().optional(),
   })
@@ -137,6 +139,7 @@ export function getEnv(): Env {
     GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
     GOOGLE_MOBILE_CLIENT_IDS: process.env.GOOGLE_MOBILE_CLIENT_IDS,
     ACCOUNT_DELETION_WEBHOOKS: process.env.ACCOUNT_DELETION_WEBHOOKS,
+    SPACE_WEBHOOKS: process.env.SPACE_WEBHOOKS,
     PRIVACY_CONTACT_EMAIL: process.env.PRIVACY_CONTACT_EMAIL || undefined,
   });
 

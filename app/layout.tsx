@@ -41,7 +41,7 @@ export default async function RootLayout({
         <NoirlyHead themeId="gold" nonce={nonce} />
       </head>
       <body className={`${noirlyFontClassName} flex min-h-dvh flex-col antialiased`}>
-        <NoirlyExperience mark="Noirly Identity" pageTransition={false}>
+        <NoirlyExperience mark="Noirly Identity" pageTransition={false} cursor={false}>
           <AppProviders>{children}</AppProviders>
         </NoirlyExperience>
       </body>

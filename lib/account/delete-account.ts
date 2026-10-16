@@ -1,7 +1,9 @@
 import { isBlockedUser } from "@/lib/auth/user-policy";
 import { Mfa, Passkey, SecurityChallenge } from "@/models/SecurityCredential";
 import { MobileBrowserLogin } from "@/models/MobileBrowserLogin";
-import type { Types } from "mongoose";
+import { Types } from "mongoose";
+import { handOverOwnedSpaces, spaceIdsForUser } from "@/lib/spaces/space-service";
+import { notifySpaceChanged } from "@/lib/spaces/space-webhooks";
 import { AppError } from "@/lib/api/errors";
 import { notifyAccountDeleted } from "@/lib/account/deletion-webhooks";
 import { verifyPassword } from "@/lib/security/password";
@@ -53,6 +55,10 @@ export async function deleteUserAccount(
   userId: Types.ObjectId | string,
 ): Promise<DeletionResult> {
   const sub = String(userId);
+  // Spaces they're in lose a member; spaces they alone own pass to someone else.
+  const userOid = new Types.ObjectId(sub);
+  const spaceIds = await spaceIdsForUser(userOid);
+  await handOverOwnedSpaces(userOid);
   await Promise.all([
     Mfa.deleteMany({ userId }),
     Passkey.deleteMany({ userId }),
@@ -68,6 +74,7 @@ export async function deleteUserAccount(
     OrganizationMembership.deleteMany({ userId }),
   ]);
   await User.deleteOne({ _id: userId });
+  await notifySpaceChanged(spaceIds);
   return { deleted: true, ...(await notifyAccountDeleted(sub)) };
 }
 
