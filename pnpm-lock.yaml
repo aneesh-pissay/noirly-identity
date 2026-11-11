@@ -105,6 +105,9 @@ importers:
       vitest:
         specifier: ^4.1.10
         version: 4.1.11(@types/node@20.19.43)(vite@8.2.2(@types/node@20.19.43)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13))
+      xml-crypto:
+        specifier: ^6.4.0
+        version: 6.4.0
 
 packages:
 
