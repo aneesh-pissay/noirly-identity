@@ -3,7 +3,9 @@ import { randomInt } from "node:crypto";
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { AppError, errorResponse } from "@/lib/api/errors";
-import { enforceCsrfForCookieAuth, enforceRateLimit, readJsonBody } from "@/lib/api/request";
+import { enforceCsrfForCookieAuth, enforceRateLimit, readJsonBody, requestMeta } from "@/lib/api/request";
+import { recordEvent } from "@/lib/audit/event-log";
+import type { SignInMethod } from "@/lib/audit/chain";
 import { withDb } from "@/lib/api/with-db";
 import { getEnv } from "@/lib/config/env";
 import { generateSecureToken, hashToken } from "@/lib/security/crypto";
@@ -54,7 +56,10 @@ export async function POST(request: NextRequest) {
     const browserSession = await Session.findOne({ _id: record.sessionId, userId: record.userId, revokedAt: null, expiresAt: { $gt: new Date() } }).lean();
     if (!user || (user.status !== "active" || isBlockedUser(user)) || !user.emailVerified || !browserSession) throw new AppError("Sign in again", 401, "unauthorized");
     await requirePublicMobileClient(record.clientId);
-    const session = await createSession({ userId: user._id, userAgent: request.headers.get("user-agent"), securityVerified: Boolean(browserSession.securityVerifiedAt) });
+    // Carries the browser session's strength: the app was approved from it.
+    const session = await createSession({ userId: user._id, ...requestMeta(request), securityVerified: Boolean(browserSession.securityVerifiedAt), methods: (browserSession.methods ?? []) as SignInMethod[] });
+    // Approved from a browser that was already signed in, with the code the app showed.
+    await recordEvent({ action: "auth.signed_in", subjectId: user._id, clientId: record.clientId, request: requestMeta(request), data: { methods: ["mobile_browser"] } });
     return jsonResponse(await mintMobileTokens({ clientId: record.clientId, scope: record.scope, sessionToken: session.token, user: toPublicUser(user) }));
   }); } catch (error) { return errorResponse(error); }
 }

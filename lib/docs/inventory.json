@@ -1,0 +1,1188 @@
+{
+  "generatedAt": "2026-11-11T12:03:11.906Z",
+  "articles": [
+    {
+      "id": "overview",
+      "title": "What Noirly Identity is",
+      "category": "getting-started",
+      "kind": "guide",
+      "location": null,
+      "video": "unavailable",
+      "unavailableReason": "This page is an overview of Identity as a whole; each feature's own page has its walkthrough.",
+      "verified": false,
+      "sources": [
+        "app/page.tsx",
+        "README.md"
+      ],
+      "fingerprint": "ea8ea7f367f88a52"
+    },
+    {
+      "id": "creating-an-account",
+      "title": "Creating an account",
+      "category": "getting-started",
+      "kind": "feature",
+      "location": "/register",
+      "video": "missing",
+      "verified": false,
+      "sources": [
+        "app/(auth)/register/page.tsx",
+        "app/api/auth/register/route.ts",
+        "lib/security/signup-protection.ts",
+        "lib/security/breached-passwords.ts",
+        "app/(auth)/verify-email/page.tsx",
+        "app/(auth)/check-email/page.tsx",
+        "app/api/auth/verify-email",
+        "app/api/auth/resend-verification/route.ts",
+        "app/api/auth/register"
+      ],
+      "fingerprint": "24befaad05679257"
+    },
+    {
+      "id": "signing-in",
+      "title": "Signing in",
+      "category": "getting-started",
+      "kind": "feature",
+      "location": "/login",
+      "video": "missing",
+      "verified": false,
+      "sources": [
+        "app/(auth)/login",
+        "app/api/auth/login/route.ts",
+        "lib/auth/discovery.ts",
+        "app/api/auth/discover/route.ts",
+        "lib/auth/recent-emails.ts",
+        "lib/security/risk.ts"
+      ],
+      "fingerprint": "f860ff42a6c2dbea"
+    },
+    {
+      "id": "your-account-page",
+      "title": "Your account page",
+      "category": "getting-started",
+      "kind": "guide",
+      "location": "/account",
+      "video": "missing",
+      "verified": false,
+      "sources": [
+        "app/(app)/account/page.tsx",
+        "components/AccountSettings.tsx",
+        "components/ThemeControls.tsx"
+      ],
+      "fingerprint": "14441ee7140f41fc"
+    },
+    {
+      "id": "passwords",
+      "title": "Passwords",
+      "category": "signing-in",
+      "kind": "feature",
+      "location": "Account → Password, and Forgot password on the sign-in page",
+      "video": "missing",
+      "verified": false,
+      "sources": [
+        "app/api/auth/change-password/route.ts",
+        "app/api/auth/forgot-password/route.ts",
+        "app/api/auth/reset-password/route.ts",
+        "app/(auth)/forgot-password/page.tsx",
+        "app/(auth)/reset-password/page.tsx",
+        "lib/security/password.ts",
+        "lib/security/breached-passwords.ts",
+        "app/api/auth/password/route.ts"
+      ],
+      "fingerprint": "ec301c7956aafd51"
+    },
+    {
+      "id": "passkeys",
+      "title": "Passkeys and security keys",
+      "category": "signing-in",
+      "kind": "feature",
+      "location": "Account → Sign-in security → Passkeys and security keys",
+      "video": "unavailable",
+      "unavailableReason": "Passkey prompts are drawn by the browser and operating system, outside the page, so they can't be recorded faithfully.",
+      "verified": false,
+      "sources": [
+        "lib/security/passkeys.ts",
+        "components/security/PasskeySignIn.tsx",
+        "components/security/SecuritySettings.tsx",
+        "app/api/auth/security"
+      ],
+      "fingerprint": "838861bf8229c4fe"
+    },
+    {
+      "id": "sign-in-providers",
+      "title": "Google and other providers",
+      "category": "signing-in",
+      "kind": "feature",
+      "location": "Sign-in page, and Account → Ways to sign in",
+      "video": "unavailable",
+      "unavailableReason": "Signing in with a provider happens on the provider's own pages with a real account there, which can't be recorded safely.",
+      "verified": false,
+      "sources": [
+        "lib/auth/provider-login.ts",
+        "lib/auth/google.ts",
+        "lib/auth/apple.ts",
+        "lib/auth/oauth-providers.ts",
+        "lib/account/identities.ts",
+        "components/security/SignInMethods.tsx",
+        "components/GoogleOneTap.tsx",
+        "app/api/auth/google",
+        "app/api/auth/apple",
+        "app/api/auth/oauth",
+        "app/api/auth/oauth-providers/route.ts"
+      ],
+      "fingerprint": "b2dd7438f67a4cde"
+    },
+    {
+      "id": "email-sign-in-links",
+      "title": "Emailed sign-in links",
+      "category": "signing-in",
+      "kind": "feature",
+      "location": "Sign-in page → Email me a sign-in link instead",
+      "video": "missing",
+      "verified": false,
+      "sources": [
+        "lib/auth/magic-link.ts",
+        "app/(auth)/magic-link/page.tsx",
+        "app/api/auth/magic-link",
+        "lib/security/email-code.ts"
+      ],
+      "fingerprint": "a15e3f706ce76758"
+    },
+    {
+      "id": "two-step-verification",
+      "title": "Two-step verification",
+      "category": "signing-in",
+      "kind": "feature",
+      "location": "Account → Sign-in security",
+      "video": "missing",
+      "verified": false,
+      "sources": [
+        "components/security/SecuritySettings.tsx",
+        "lib/security/mfa.ts",
+        "lib/security/factors.ts",
+        "lib/security/authenticators.ts",
+        "lib/security/enrollment.ts",
+        "app/(auth)/mfa/page.tsx",
+        "app/api/auth/mfa",
+        "app/api/auth/step-up/route.ts"
+      ],
+      "fingerprint": "dc776003ffe8bdd8"
+    },
+    {
+      "id": "ways-to-sign-in",
+      "title": "Ways to sign in",
+      "category": "signing-in",
+      "kind": "feature",
+      "location": "Account → Ways to sign in",
+      "video": "missing",
+      "verified": false,
+      "sources": [
+        "components/security/SignInMethods.tsx",
+        "lib/account/sign-in-methods.ts",
+        "app/api/auth/identities"
+      ],
+      "fingerprint": "acb9bca2640edc3b"
+    },
+    {
+      "id": "single-sign-on",
+      "title": "Signing in with your organization",
+      "category": "signing-in",
+      "kind": "feature",
+      "location": "Sign-in page, after typing a work address",
+      "video": "unavailable",
+      "unavailableReason": "Single sign-on runs through an organization's own identity provider, which the isolated capture server doesn't have.",
+      "verified": false,
+      "sources": [
+        "lib/federation/sso.ts",
+        "app/api/sso",
+        "lib/auth/discovery.ts",
+        "app/(auth)/login/LoginForm.tsx"
+      ],
+      "fingerprint": "e694a16b045cdb06"
+    },
+    {
+      "id": "mobile-app-sign-in",
+      "title": "Approving a mobile app sign-in",
+      "category": "signing-in",
+      "kind": "feature",
+      "location": "/mobile-login",
+      "video": "unavailable",
+      "unavailableReason": "The walkthrough needs a Noirly mobile app on a real phone alongside the browser, which the capture server can't drive.",
+      "verified": false,
+      "sources": [
+        "components/security/MobileLoginApproval.tsx",
+        "app/(auth)/mobile-login/page.tsx",
+        "lib/mobile",
+        "app/api/mobile"
+      ],
+      "fingerprint": "6414a50c12ae8d99"
+    },
+    {
+      "id": "profile-and-photo",
+      "title": "Profile and photo",
+      "category": "account",
+      "kind": "feature",
+      "location": "Account → top of the page",
+      "video": "missing",
+      "verified": false,
+      "sources": [
+        "components/AccountSettings.tsx",
+        "components/AvatarPicker.tsx",
+        "lib/account/avatar.ts",
+        "app/api/auth/me/route.ts",
+        "app/api/auth/avatar"
+      ],
+      "fingerprint": "59faa3553317f962"
+    },
+    {
+      "id": "email-addresses",
+      "title": "Email addresses",
+      "category": "account",
+      "kind": "feature",
+      "location": "Account → Email addresses",
+      "video": "missing",
+      "verified": false,
+      "sources": [
+        "components/security/EmailAddresses.tsx",
+        "lib/account/emails.ts",
+        "app/api/auth/emails",
+        "app/(auth)/undo-email-change/page.tsx",
+        "app/api/auth/email-change"
+      ],
+      "fingerprint": "9dd791e42a2fe63a"
+    },
+    {
+      "id": "phone-number",
+      "title": "Phone number",
+      "category": "account",
+      "kind": "feature",
+      "location": "Account → Phone number",
+      "video": "unavailable",
+      "unavailableReason": "Verifying a number sends a real text message, which the isolated capture server has no way to receive.",
+      "verified": false,
+      "sources": [
+        "components/security/PhoneNumber.tsx",
+        "lib/account/phone.ts",
+        "app/api/auth/phone"
+      ],
+      "fingerprint": "c6ea35a7e3de8d3e"
+    },
+    {
+      "id": "preferences",
+      "title": "Language, time and accessibility",
+      "category": "account",
+      "kind": "feature",
+      "location": "Account → Language, time and accessibility",
+      "video": "missing",
+      "verified": false,
+      "sources": [
+        "components/security/Preferences.tsx",
+        "lib/account/preferences.ts"
+      ],
+      "fingerprint": "c1693663d92c4824"
+    },
+    {
+      "id": "merge-accounts",
+      "title": "Merging two accounts",
+      "category": "account",
+      "kind": "feature",
+      "location": "Account → Merge another account into this one",
+      "video": "missing",
+      "verified": false,
+      "sources": [
+        "components/security/MergeAccounts.tsx",
+        "lib/account/merge.ts",
+        "lib/account/merge-plan.ts",
+        "lib/account/merge-webhooks.ts",
+        "app/(auth)/merge-accounts/page.tsx",
+        "app/api/auth/merge"
+      ],
+      "fingerprint": "035d78deb837a03e"
+    },
+    {
+      "id": "closing-your-account",
+      "title": "Closing your account",
+      "category": "account",
+      "kind": "feature",
+      "location": "Account → Delete account",
+      "video": "missing",
+      "verified": false,
+      "sources": [
+        "components/DeleteAccountForm.tsx",
+        "app/delete-account/page.tsx",
+        "lib/account/closure.ts",
+        "lib/account/delete-account.ts",
+        "lib/account/deletion-webhooks.ts",
+        "app/(auth)/close-account/undo/page.tsx",
+        "app/api/auth/close-account",
+        "app/api/auth/delete-account/route.ts"
+      ],
+      "fingerprint": "310368cc71b3b317"
+    },
+    {
+      "id": "devices-and-sessions",
+      "title": "Devices and sessions",
+      "category": "security",
+      "kind": "feature",
+      "location": "Account → Devices and sessions",
+      "video": "missing",
+      "verified": false,
+      "sources": [
+        "components/security/DeviceSessions.tsx",
+        "lib/sessions/devices.ts",
+        "lib/sessions/session-service.ts",
+        "lib/oidc/backchannel-logout.ts",
+        "app/api/auth/sessions",
+        "app/(auth)/logout/page.tsx",
+        "app/api/auth/logout/route.ts"
+      ],
+      "fingerprint": "4ab647d7a09ae785"
+    },
+    {
+      "id": "session-length",
+      "title": "How long you stay signed in",
+      "category": "security",
+      "kind": "feature",
+      "location": "Account → How long you stay signed in",
+      "video": "missing",
+      "verified": false,
+      "sources": [
+        "components/security/SessionLifetime.tsx",
+        "lib/sessions/lifetime.ts",
+        "lib/sessions/lifetime-choices.ts"
+      ],
+      "fingerprint": "4cfaf340e0ea1e36"
+    },
+    {
+      "id": "security-activity",
+      "title": "Security activity",
+      "category": "security",
+      "kind": "feature",
+      "location": "Account → Security activity",
+      "video": "missing",
+      "verified": false,
+      "sources": [
+        "components/security/SecurityActivity.tsx",
+        "lib/audit/activity.ts",
+        "lib/audit/event-log.ts",
+        "app/api/auth/activity"
+      ],
+      "fingerprint": "ef98d07686c7c0c6"
+    },
+    {
+      "id": "security-alerts",
+      "title": "Security alerts",
+      "category": "security",
+      "kind": "feature",
+      "location": null,
+      "video": "unavailable",
+      "unavailableReason": "Alerts are emails, not something on screen to record; Security activity shows the same events.",
+      "verified": false,
+      "sources": [
+        "lib/security/alerts.ts",
+        "lib/security/risk.ts"
+      ],
+      "fingerprint": "578b33151b8241cc"
+    },
+    {
+      "id": "freezing-your-account",
+      "title": "Freezing your account",
+      "category": "security",
+      "kind": "feature",
+      "location": "Account → Freeze your account, /freeze, and every security alert",
+      "video": "missing",
+      "verified": false,
+      "sources": [
+        "components/security/FreezeAccount.tsx",
+        "lib/security/account-lock.ts",
+        "app/(auth)/freeze/page.tsx",
+        "app/(auth)/unfreeze/page.tsx",
+        "app/api/auth/freeze"
+      ],
+      "fingerprint": "d9f1a4d3d815bb9e"
+    },
+    {
+      "id": "recovery-address",
+      "title": "Recovery address and phone",
+      "category": "security",
+      "kind": "feature",
+      "location": "Account → Recovery address and phone",
+      "video": "missing",
+      "verified": false,
+      "sources": [
+        "components/security/RecoveryMethods.tsx",
+        "lib/account/recovery-methods.ts",
+        "app/api/auth/recovery-methods"
+      ],
+      "fingerprint": "a4262dffd6ba2d1c"
+    },
+    {
+      "id": "losing-your-second-step",
+      "title": "Losing your second step",
+      "category": "security",
+      "kind": "feature",
+      "location": "Verify your sign-in → Lost your authenticator app, passkey or security key?",
+      "video": "missing",
+      "verified": false,
+      "sources": [
+        "components/security/LostFactor.tsx",
+        "lib/security/recovery.ts",
+        "app/api/auth/recovery",
+        "app/(auth)/cancel-recovery/page.tsx"
+      ],
+      "fingerprint": "b6982e8e5abc05ef"
+    },
+    {
+      "id": "privacy-dashboard",
+      "title": "Your privacy page",
+      "category": "privacy",
+      "kind": "feature",
+      "location": "Account → Privacy (/account/privacy)",
+      "video": "missing",
+      "verified": false,
+      "sources": [
+        "app/(app)/account/privacy/page.tsx",
+        "lib/account/privacy.ts",
+        "app/api/auth/privacy/route.ts",
+        "app/api/auth/export"
+      ],
+      "fingerprint": "a4af6c3c4cce156e"
+    },
+    {
+      "id": "connected-apps",
+      "title": "Apps using your account",
+      "category": "privacy",
+      "kind": "feature",
+      "location": "Privacy → Apps using your account",
+      "video": "missing",
+      "verified": false,
+      "sources": [
+        "components/security/ConnectedApps.tsx",
+        "lib/account/app-access.ts",
+        "lib/account/app-scopes.ts",
+        "app/api/auth/apps"
+      ],
+      "fingerprint": "519443c29ac7e71e"
+    },
+    {
+      "id": "consent",
+      "title": "Allowing an app",
+      "category": "privacy",
+      "kind": "feature",
+      "location": "/consent, during an app's sign-in",
+      "video": "unavailable",
+      "unavailableReason": "The consent screen appears only when a registered app starts a sign-in, which needs a second app running beside the capture server.",
+      "verified": false,
+      "sources": [
+        "app/(auth)/consent/page.tsx",
+        "lib/oauth/scope-descriptions.ts",
+        "lib/oauth/authorize.ts"
+      ],
+      "fingerprint": "b530952e9c5cc382"
+    },
+    {
+      "id": "data-export",
+      "title": "Getting your data",
+      "category": "privacy",
+      "kind": "feature",
+      "location": "Privacy → Your data from every Noirly app",
+      "video": "missing",
+      "verified": false,
+      "sources": [
+        "components/security/DataExports.tsx",
+        "lib/account/data-export.ts",
+        "app/api/auth/data-export/route.ts"
+      ],
+      "fingerprint": "c6157b5577f0d18e"
+    },
+    {
+      "id": "spaces",
+      "title": "Spaces",
+      "category": "spaces",
+      "kind": "feature",
+      "location": "Account → Spaces (/spaces)",
+      "video": "missing",
+      "verified": false,
+      "sources": [
+        "components/SpacesManager.tsx",
+        "lib/spaces/space-service.ts",
+        "app/api/spaces",
+        "app/(app)/spaces/page.tsx",
+        "lib/spaces/space-webhooks.ts",
+        "app/(auth)/choose-organization/page.tsx",
+        "app/api/integrations"
+      ],
+      "fingerprint": "337755eb785851f1"
+    },
+    {
+      "id": "invitations",
+      "title": "Invitations",
+      "category": "spaces",
+      "kind": "feature",
+      "location": "Spaces → a space → Invite someone by email",
+      "video": "missing",
+      "verified": false,
+      "sources": [
+        "lib/spaces/invitations.ts",
+        "app/api/spaces/[spaceId]/invitations",
+        "app/(auth)/invitations/accept/page.tsx",
+        "app/api/invitations/route.ts"
+      ],
+      "fingerprint": "c832ba92ddf6dbc3"
+    },
+    {
+      "id": "business-domains",
+      "title": "Business domains",
+      "category": "spaces",
+      "kind": "feature",
+      "location": "Spaces → a space → Business domains",
+      "video": "unavailable",
+      "unavailableReason": "Verifying a domain needs a real DNS record for a domain we control, which the isolated capture server can't publish.",
+      "verified": false,
+      "sources": [
+        "components/spaces/SpaceDomains.tsx",
+        "components/spaces/JoinableSpaces.tsx",
+        "lib/spaces/domains.ts",
+        "app/api/spaces/[spaceId]/domains",
+        "app/api/spaces/joinable"
+      ],
+      "fingerprint": "7225f35ee24724a4"
+    },
+    {
+      "id": "teams",
+      "title": "Teams",
+      "category": "spaces",
+      "kind": "feature",
+      "location": "Spaces → a space → Teams",
+      "video": "missing",
+      "verified": false,
+      "sources": [
+        "components/spaces/SpaceTeams.tsx",
+        "lib/spaces/teams.ts",
+        "app/api/spaces/[spaceId]/teams"
+      ],
+      "fingerprint": "ce034cbf81210a84"
+    },
+    {
+      "id": "space-apps",
+      "title": "Which apps a space uses",
+      "category": "spaces",
+      "kind": "feature",
+      "location": "Spaces → a space → Apps",
+      "video": "missing",
+      "verified": false,
+      "sources": [
+        "components/spaces/SpaceApps.tsx",
+        "lib/spaces/org-apps.ts",
+        "app/api/spaces/[spaceId]/apps"
+      ],
+      "fingerprint": "4bf5186e6d362d73"
+    },
+    {
+      "id": "space-sign-in-rules",
+      "title": "Sign-in rules for a space",
+      "category": "spaces",
+      "kind": "feature",
+      "location": "Spaces → a space → Sign-in and sessions",
+      "video": "missing",
+      "verified": false,
+      "sources": [
+        "components/spaces/SpaceSecurity.tsx",
+        "lib/spaces/org-security.ts",
+        "app/api/spaces/[spaceId]/security"
+      ],
+      "fingerprint": "df8aa43ccb5a59dd"
+    },
+    {
+      "id": "space-access",
+      "title": "Roles and permissions in apps",
+      "category": "spaces",
+      "kind": "feature",
+      "location": "Spaces → a space → Access",
+      "video": "missing",
+      "verified": false,
+      "sources": [
+        "components/spaces/SpaceAccess.tsx",
+        "lib/authz",
+        "app/api/spaces/[spaceId]/access",
+        "app/api/spaces/[spaceId]/service-accounts"
+      ],
+      "fingerprint": "813fcdd286ff0617"
+    },
+    {
+      "id": "sso-setup",
+      "title": "Connecting your identity provider",
+      "category": "enterprise",
+      "kind": "feature",
+      "location": "Spaces → a space → Single sign-on",
+      "video": "unavailable",
+      "unavailableReason": "Recording needs a real identity provider (Entra ID, Okta or a SAML IdP) to sign in through, which the isolated capture server doesn't have.",
+      "verified": false,
+      "sources": [
+        "components/spaces/SpaceSso.tsx",
+        "lib/federation/providers.ts",
+        "lib/federation/presets.ts",
+        "lib/federation/sso.ts",
+        "app/api/spaces/[spaceId]/sso/route.ts",
+        "app/api/sso",
+        "docs/SSO.md"
+      ],
+      "fingerprint": "7a1628ae02d5d4f5"
+    },
+    {
+      "id": "requiring-sso",
+      "title": "Requiring single sign-on and break-glass access",
+      "category": "enterprise",
+      "kind": "feature",
+      "location": "Spaces → a space → Single sign-on → Require single sign-on for these domains",
+      "video": "unavailable",
+      "unavailableReason": "Recording needs a real identity provider (Entra ID, Okta or a SAML IdP) to sign in through, which the isolated capture server doesn't have.",
+      "verified": false,
+      "sources": [
+        "lib/federation/enforcement.ts",
+        "components/spaces/SpaceSso.tsx",
+        "lib/sessions/session-service.ts",
+        "lib/auth/discovery.ts"
+      ],
+      "fingerprint": "1b4c2aaf338c6809"
+    },
+    {
+      "id": "attribute-mapping",
+      "title": "Mapping attributes, roles and teams",
+      "category": "enterprise",
+      "kind": "feature",
+      "location": "Spaces → a space → Single sign-on → a connection",
+      "video": "unavailable",
+      "unavailableReason": "Recording needs a real identity provider (Entra ID, Okta or a SAML IdP) to sign in through, which the isolated capture server doesn't have.",
+      "verified": false,
+      "sources": [
+        "lib/federation/sso.ts",
+        "lib/federation/presets.ts",
+        "models/IdentityProvider.ts"
+      ],
+      "fingerprint": "3f039a7726772c1a"
+    },
+    {
+      "id": "federation-certificates",
+      "title": "SAML certificates",
+      "category": "enterprise",
+      "kind": "feature",
+      "location": "Spaces → a space → Single sign-on → Certificates",
+      "video": "unavailable",
+      "unavailableReason": "Recording needs a real identity provider (Entra ID, Okta or a SAML IdP) to sign in through, which the isolated capture server doesn't have.",
+      "verified": false,
+      "sources": [
+        "lib/federation/certificates.ts",
+        "lib/federation/providers.ts"
+      ],
+      "fingerprint": "a98e77cf77bbb5d3"
+    },
+    {
+      "id": "scim-provisioning",
+      "title": "Directory provisioning (SCIM)",
+      "category": "enterprise",
+      "kind": "feature",
+      "location": "Spaces → a space → Directory → Provisioning (SCIM 2.0)",
+      "video": "unavailable",
+      "unavailableReason": "Provisioning is driven by a directory service (Entra ID or Okta) calling Identity, which the capture server can't stand in for faithfully.",
+      "verified": false,
+      "sources": [
+        "lib/scim",
+        "app/api/scim/v2",
+        "components/spaces/SpaceDirectory.tsx",
+        "docs/PROVISIONING.md"
+      ],
+      "fingerprint": "47c25cd822dd85ea"
+    },
+    {
+      "id": "directory-group-sync",
+      "title": "Directory groups, teams and roles",
+      "category": "enterprise",
+      "kind": "feature",
+      "location": "Spaces → a space → Directory → Provisioning",
+      "video": "unavailable",
+      "unavailableReason": "Groups are pushed by a directory service, which the capture server can't stand in for faithfully.",
+      "verified": false,
+      "sources": [
+        "lib/scim/groups.ts",
+        "lib/scim/tokens.ts"
+      ],
+      "fingerprint": "80d06c8bd93ea331"
+    },
+    {
+      "id": "offboarding",
+      "title": "Deactivating and reactivating members",
+      "category": "enterprise",
+      "kind": "feature",
+      "location": "Spaces → a space → Directory, or SCIM",
+      "video": "missing",
+      "verified": false,
+      "sources": [
+        "lib/directory/lifecycle.ts",
+        "app/api/spaces/[spaceId]/directory/route.ts",
+        "components/spaces/SpaceDirectory.tsx"
+      ],
+      "fingerprint": "b087ff42811a1738"
+    },
+    {
+      "id": "bulk-invitations",
+      "title": "Bulk invitations and CSV import",
+      "category": "enterprise",
+      "kind": "feature",
+      "location": "Spaces → a space → Directory",
+      "video": "missing",
+      "verified": false,
+      "sources": [
+        "lib/directory/bulk.ts",
+        "components/spaces/SpaceDirectory.tsx",
+        "app/api/spaces/[spaceId]/directory/route.ts"
+      ],
+      "fingerprint": "a86c4af43ec265cc"
+    },
+    {
+      "id": "reconciliation",
+      "title": "Duplicates and reconciliation",
+      "category": "enterprise",
+      "kind": "feature",
+      "location": "Spaces → a space → Directory → Reconciliation",
+      "video": "missing",
+      "verified": false,
+      "sources": [
+        "lib/directory/reconcile.ts",
+        "components/spaces/SpaceDirectory.tsx"
+      ],
+      "fingerprint": "fc2e855ad95a7504"
+    },
+    {
+      "id": "integrating-an-app",
+      "title": "Adding Noirly sign-in to an app",
+      "category": "developers",
+      "kind": "guide",
+      "location": null,
+      "video": "unavailable",
+      "unavailableReason": "This is a code guide; there's no screen in Identity to record.",
+      "verified": false,
+      "sources": [
+        "docs/INTEGRATION.md",
+        "lib/oidc/discovery.ts",
+        "lib/oauth/authorize.ts",
+        "lib/oauth/token.ts",
+        "app/api/oauth",
+        "app/api/oidc"
+      ],
+      "fingerprint": "1672e58368a434aa"
+    },
+    {
+      "id": "registering-an-app",
+      "title": "Registering an app",
+      "category": "developers",
+      "kind": "feature",
+      "location": "Account → OAuth clients (/clients)",
+      "video": "missing",
+      "verified": false,
+      "sources": [
+        "components/ClientGenerator.tsx",
+        "app/(app)/clients/page.tsx",
+        "lib/oauth/client-admin.ts",
+        "lib/oauth/environments.ts",
+        "lib/oauth/app-owners.ts",
+        "lib/oauth/access-policy.ts",
+        "app/api/admin/clients"
+      ],
+      "fingerprint": "cef23846de9ed45a"
+    },
+    {
+      "id": "api-resources",
+      "title": "APIs and machine-to-machine access",
+      "category": "developers",
+      "kind": "feature",
+      "location": "Account → APIs (/apis)",
+      "video": "missing",
+      "verified": false,
+      "sources": [
+        "components/ApiResourcesManager.tsx",
+        "app/(app)/apis/page.tsx",
+        "lib/oauth/resources.ts",
+        "lib/oauth/client-credentials.ts",
+        "lib/oauth/introspect.ts",
+        "app/api/admin/resources"
+      ],
+      "fingerprint": "4dbdd404cb8cc2fe"
+    },
+    {
+      "id": "machine-to-machine",
+      "title": "Service accounts",
+      "category": "developers",
+      "kind": "guide",
+      "location": null,
+      "video": "unavailable",
+      "unavailableReason": "Service accounts are used from code; their setup is shown in Roles and permissions in apps.",
+      "verified": false,
+      "sources": [
+        "lib/authz/service-accounts.ts",
+        "app/api/spaces/[spaceId]/service-accounts",
+        "lib/oauth/client-credentials.ts"
+      ],
+      "fingerprint": "dfd43c5d2612b3ef"
+    },
+    {
+      "id": "permissions-api",
+      "title": "Checking permissions from an app",
+      "category": "developers",
+      "kind": "guide",
+      "location": null,
+      "video": "unavailable",
+      "unavailableReason": "This is a code guide; there's no screen in Identity to record.",
+      "verified": false,
+      "sources": [
+        "lib/authz/engine.ts",
+        "app/api/authz",
+        "lib/authz/delivery.ts"
+      ],
+      "fingerprint": "cd4610ed70ead300"
+    },
+    {
+      "id": "logout-and-webhooks",
+      "title": "Logout, lifecycle webhooks and data requests",
+      "category": "developers",
+      "kind": "guide",
+      "location": null,
+      "video": "unavailable",
+      "unavailableReason": "This is a code guide; there's no screen in Identity to record.",
+      "verified": false,
+      "sources": [
+        "lib/oidc/backchannel-logout.ts",
+        "lib/account/deletion-webhooks.ts",
+        "lib/webhooks/lifecycle.ts",
+        "lib/account/data-export.ts",
+        "docs/INTEGRATION.md"
+      ],
+      "fingerprint": "4aa8b2cb8f9e4d46"
+    },
+    {
+      "id": "data-export-for-apps",
+      "title": "Answering data export requests",
+      "category": "developers",
+      "kind": "guide",
+      "location": null,
+      "video": "unavailable",
+      "unavailableReason": "This is a code guide; there's no screen in Identity to record.",
+      "verified": false,
+      "sources": [
+        "lib/account/data-export.ts",
+        "docs/INTEGRATION.md"
+      ],
+      "fingerprint": "a6922c677aacac4b"
+    },
+    {
+      "id": "audit-log",
+      "title": "Audit log, alerts and retention",
+      "category": "admin",
+      "kind": "feature",
+      "location": "Account → Audit log (/admin/audit)",
+      "video": "missing",
+      "verified": false,
+      "sources": [
+        "components/AdminAudit.tsx",
+        "app/(app)/admin/audit/page.tsx",
+        "lib/audit",
+        "app/api/admin/audit",
+        "app/api/admin/events"
+      ],
+      "fingerprint": "1dc829ef0280ef14"
+    },
+    {
+      "id": "account-protection",
+      "title": "Account protection",
+      "category": "admin",
+      "kind": "feature",
+      "location": "Account → Account protection (/admin/security)",
+      "video": "missing",
+      "verified": false,
+      "sources": [
+        "components/AdminSecurity.tsx",
+        "app/(app)/admin/security/page.tsx",
+        "lib/security/containment.ts",
+        "app/api/admin/accounts",
+        "app/api/admin/recoveries"
+      ],
+      "fingerprint": "71f7d3e8a389b6ca"
+    },
+    {
+      "id": "deletion-status",
+      "title": "Account deletions",
+      "category": "admin",
+      "kind": "feature",
+      "location": "/admin/deletions",
+      "video": "missing",
+      "verified": false,
+      "sources": [
+        "components/AdminDeletions.tsx",
+        "app/(app)/admin/deletions/page.tsx",
+        "lib/account/deletion-status.ts",
+        "app/api/admin/deletions/route.ts"
+      ],
+      "fingerprint": "273be2fc8355260a"
+    },
+    {
+      "id": "claim-review",
+      "title": "Claim review",
+      "category": "admin",
+      "kind": "feature",
+      "location": "/admin/claims",
+      "video": "missing",
+      "verified": false,
+      "sources": [
+        "components/AdminClaims.tsx",
+        "app/(app)/admin/claims/page.tsx",
+        "lib/oauth/claim-review.ts",
+        "app/api/admin/claims/route.ts"
+      ],
+      "fingerprint": "aa8ef396774a2ed3"
+    },
+    {
+      "id": "compliance-evidence",
+      "title": "Signing keys and compliance evidence",
+      "category": "admin",
+      "kind": "guide",
+      "location": null,
+      "video": "unavailable",
+      "unavailableReason": "These run from the command line; there's no screen to record.",
+      "verified": false,
+      "sources": [
+        "lib/compliance/evidence.ts",
+        "scripts/compliance-evidence.ts",
+        "app/api/admin/evidence/route.ts",
+        "lib/oidc/keys.ts",
+        "scripts/rotate-signing-keys.ts",
+        "docs/compliance",
+        "app/api/admin/keys/route.ts"
+      ],
+      "fingerprint": "1c48dd4fd1cc5338"
+    },
+    {
+      "id": "troubleshooting",
+      "title": "Troubleshooting",
+      "category": "help",
+      "kind": "guide",
+      "location": null,
+      "video": "unavailable",
+      "unavailableReason": "A collection of fixes rather than one workflow; each feature's page has its walkthrough.",
+      "verified": false,
+      "sources": [
+        "app/(auth)/login",
+        "app/(auth)/no-access/page.tsx",
+        "lib/security/rate-limit.ts",
+        "app/privacy/page.tsx"
+      ],
+      "fingerprint": "c90d5fcbc7c2f257"
+    }
+  ],
+  "discovered": {
+    "pages": [
+      "app/(app)/account/page.tsx",
+      "app/(app)/account/privacy/page.tsx",
+      "app/(app)/admin/audit/page.tsx",
+      "app/(app)/admin/claims/page.tsx",
+      "app/(app)/admin/deletions/page.tsx",
+      "app/(app)/admin/security/page.tsx",
+      "app/(app)/apis/page.tsx",
+      "app/(app)/clients/page.tsx",
+      "app/(app)/spaces/page.tsx",
+      "app/(auth)/cancel-recovery/page.tsx",
+      "app/(auth)/check-email/page.tsx",
+      "app/(auth)/choose-organization/page.tsx",
+      "app/(auth)/close-account/undo/page.tsx",
+      "app/(auth)/consent/page.tsx",
+      "app/(auth)/forgot-password/page.tsx",
+      "app/(auth)/freeze/page.tsx",
+      "app/(auth)/invitations/accept/page.tsx",
+      "app/(auth)/login/page.tsx",
+      "app/(auth)/logout/page.tsx",
+      "app/(auth)/magic-link/page.tsx",
+      "app/(auth)/merge-accounts/page.tsx",
+      "app/(auth)/mfa/page.tsx",
+      "app/(auth)/mobile-login/page.tsx",
+      "app/(auth)/no-access/page.tsx",
+      "app/(auth)/register/page.tsx",
+      "app/(auth)/reset-password/page.tsx",
+      "app/(auth)/undo-email-change/page.tsx",
+      "app/(auth)/unfreeze/page.tsx",
+      "app/(auth)/verify-email/page.tsx",
+      "app/delete-account/page.tsx",
+      "app/page.tsx",
+      "app/privacy/page.tsx"
+    ],
+    "apiRoutes": [
+      "app/api/admin/accounts/route.ts",
+      "app/api/admin/audit/alerts/route.ts",
+      "app/api/admin/audit/route.ts",
+      "app/api/admin/claims/route.ts",
+      "app/api/admin/clients/[clientId]/environments/route.ts",
+      "app/api/admin/clients/[clientId]/route.ts",
+      "app/api/admin/clients/route.ts",
+      "app/api/admin/deletions/route.ts",
+      "app/api/admin/events/route.ts",
+      "app/api/admin/events/verify/route.ts",
+      "app/api/admin/evidence/route.ts",
+      "app/api/admin/keys/route.ts",
+      "app/api/admin/recoveries/route.ts",
+      "app/api/admin/resources/route.ts",
+      "app/api/auth/activity/route.ts",
+      "app/api/auth/apple/callback/route.ts",
+      "app/api/auth/apple/route.ts",
+      "app/api/auth/apps/route.ts",
+      "app/api/auth/avatar/route.ts",
+      "app/api/auth/change-password/route.ts",
+      "app/api/auth/close-account/undo/route.ts",
+      "app/api/auth/csrf/route.ts",
+      "app/api/auth/data-export/route.ts",
+      "app/api/auth/delete-account/route.ts",
+      "app/api/auth/discover/route.ts",
+      "app/api/auth/email-change/undo/route.ts",
+      "app/api/auth/emails/route.ts",
+      "app/api/auth/export/route.ts",
+      "app/api/auth/forgot-password/route.ts",
+      "app/api/auth/freeze/route.ts",
+      "app/api/auth/google/callback/route.ts",
+      "app/api/auth/google/nonce/route.ts",
+      "app/api/auth/google/one-tap/route.ts",
+      "app/api/auth/google/route.ts",
+      "app/api/auth/identities/route.ts",
+      "app/api/auth/login/route.ts",
+      "app/api/auth/logout/route.ts",
+      "app/api/auth/magic-link/code/route.ts",
+      "app/api/auth/magic-link/route.ts",
+      "app/api/auth/magic-link/verify/route.ts",
+      "app/api/auth/me/route.ts",
+      "app/api/auth/merge/confirm/route.ts",
+      "app/api/auth/merge/route.ts",
+      "app/api/auth/mfa/route.ts",
+      "app/api/auth/oauth-providers/route.ts",
+      "app/api/auth/oauth/[provider]/callback/route.ts",
+      "app/api/auth/oauth/[provider]/route.ts",
+      "app/api/auth/password/route.ts",
+      "app/api/auth/phone/route.ts",
+      "app/api/auth/privacy/route.ts",
+      "app/api/auth/recovery-methods/route.ts",
+      "app/api/auth/recovery/cancel/route.ts",
+      "app/api/auth/recovery/route.ts",
+      "app/api/auth/register/challenge/route.ts",
+      "app/api/auth/register/route.ts",
+      "app/api/auth/resend-verification/route.ts",
+      "app/api/auth/reset-password/route.ts",
+      "app/api/auth/security/route.ts",
+      "app/api/auth/sessions/policy/route.ts",
+      "app/api/auth/sessions/route.ts",
+      "app/api/auth/step-up/route.ts",
+      "app/api/auth/verify-email/code/route.ts",
+      "app/api/auth/verify-email/route.ts",
+      "app/api/authz/check/route.ts",
+      "app/api/authz/permissions/route.ts",
+      "app/api/avatars/[userId]/[hash]/route.ts",
+      "app/api/brand-logo/route.ts",
+      "app/api/integrations/spaces/[spaceId]/route.ts",
+      "app/api/integrations/spaces/route.ts",
+      "app/api/integrations/users/[sub]/spaces/route.ts",
+      "app/api/invitations/route.ts",
+      "app/api/mobile/apple/route.ts",
+      "app/api/mobile/browser-login/route.ts",
+      "app/api/mobile/delete-account/route.ts",
+      "app/api/mobile/google/route.ts",
+      "app/api/mobile/login/route.ts",
+      "app/api/mobile/logout/route.ts",
+      "app/api/mobile/refresh/route.ts",
+      "app/api/mobile/register/route.ts",
+      "app/api/oauth/authorize/route.ts",
+      "app/api/oauth/consent/describe/route.ts",
+      "app/api/oauth/consent/route.ts",
+      "app/api/oauth/introspect/route.ts",
+      "app/api/oauth/revoke/route.ts",
+      "app/api/oauth/token/route.ts",
+      "app/api/oidc/logout/route.ts",
+      "app/api/oidc/session/route.ts",
+      "app/api/oidc/userinfo/route.ts",
+      "app/api/scim/v2/Groups/[id]/route.ts",
+      "app/api/scim/v2/Groups/route.ts",
+      "app/api/scim/v2/ResourceTypes/route.ts",
+      "app/api/scim/v2/Schemas/route.ts",
+      "app/api/scim/v2/ServiceProviderConfig/route.ts",
+      "app/api/scim/v2/Users/[id]/route.ts",
+      "app/api/scim/v2/Users/route.ts",
+      "app/api/spaces/[spaceId]/access/requests/route.ts",
+      "app/api/spaces/[spaceId]/access/route.ts",
+      "app/api/spaces/[spaceId]/access/simulate/route.ts",
+      "app/api/spaces/[spaceId]/apps/route.ts",
+      "app/api/spaces/[spaceId]/directory/route.ts",
+      "app/api/spaces/[spaceId]/domains/route.ts",
+      "app/api/spaces/[spaceId]/invitations/[invitationId]/route.ts",
+      "app/api/spaces/[spaceId]/invitations/route.ts",
+      "app/api/spaces/[spaceId]/join/route.ts",
+      "app/api/spaces/[spaceId]/members/[userId]/route.ts",
+      "app/api/spaces/[spaceId]/members/route.ts",
+      "app/api/spaces/[spaceId]/route.ts",
+      "app/api/spaces/[spaceId]/security/route.ts",
+      "app/api/spaces/[spaceId]/service-accounts/route.ts",
+      "app/api/spaces/[spaceId]/sso/route.ts",
+      "app/api/spaces/[spaceId]/teams/route.ts",
+      "app/api/spaces/[spaceId]/transfer/route.ts",
+      "app/api/spaces/joinable/route.ts",
+      "app/api/spaces/route.ts",
+      "app/api/sso/oidc/callback/route.ts",
+      "app/api/sso/saml/[idpId]/acs/route.ts",
+      "app/api/sso/saml/[idpId]/metadata/route.ts",
+      "app/api/sso/start/route.ts"
+    ],
+    "featureModules": [
+      "components/AccountSettings.tsx",
+      "components/AdminAudit.tsx",
+      "components/AdminClaims.tsx",
+      "components/AdminDeletions.tsx",
+      "components/AdminSecurity.tsx",
+      "components/ApiResourcesManager.tsx",
+      "components/AppProviders.tsx",
+      "components/AuthLogo.tsx",
+      "components/AvatarPicker.tsx",
+      "components/BrandMark.tsx",
+      "components/ClientGenerator.tsx",
+      "components/DeleteAccountForm.tsx",
+      "components/FaviconTheme.tsx",
+      "components/GoogleOneTap.tsx",
+      "components/LegalPage.tsx",
+      "components/MarketingHeader.tsx",
+      "components/OrDivider.tsx",
+      "components/SpacesManager.tsx",
+      "components/ThemeControls.tsx",
+      "components/ThemePicker.tsx",
+      "components/ThemeProvider.tsx",
+      "components/ThemeToggle.tsx",
+      "components/auth-ui.tsx",
+      "components/security/ConnectedApps.tsx",
+      "components/security/DataExports.tsx",
+      "components/security/DeviceSessions.tsx",
+      "components/security/EmailAddresses.tsx",
+      "components/security/FreezeAccount.tsx",
+      "components/security/LostFactor.tsx",
+      "components/security/MergeAccounts.tsx",
+      "components/security/MobileLoginApproval.tsx",
+      "components/security/PasskeySignIn.tsx",
+      "components/security/PhoneNumber.tsx",
+      "components/security/Preferences.tsx",
+      "components/security/RecoveryMethods.tsx",
+      "components/security/SecurityActivity.tsx",
+      "components/security/SecuritySettings.tsx",
+      "components/security/SessionLifetime.tsx",
+      "components/security/SignInMethods.tsx",
+      "components/spaces/JoinableSpaces.tsx",
+      "components/spaces/SpaceAccess.tsx",
+      "components/spaces/SpaceApps.tsx",
+      "components/spaces/SpaceDirectory.tsx",
+      "components/spaces/SpaceDomains.tsx",
+      "components/spaces/SpaceSecurity.tsx",
+      "components/spaces/SpaceSso.tsx",
+      "components/spaces/SpaceTeams.tsx"
+    ],
+    "settingsSections": [],
+    "e2eSpecs": []
+  },
+  "uncovered": []
+}

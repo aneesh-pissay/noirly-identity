@@ -43,3 +43,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# OpenID conformance suite secrets (scripts/conformance-setup.ts)
+.conformance/

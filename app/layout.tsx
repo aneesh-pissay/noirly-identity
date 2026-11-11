@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { NoirlyHead, noirlyFontClassName } from "@noirly-dev/ui";
 import { NoirlyExperience } from "@noirly-dev/ui/experience";
 import { AppProviders } from "@/components/AppProviders";
+import { getRequestUser } from "@/lib/auth/request-user";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -30,11 +31,17 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const nonce = (await headers()).get("x-nonce") ?? undefined;
+  // A signed-in account's language and accessibility settings shape these pages too.
+  const user = await getRequestUser().catch(() => null);
+  const accessibility = user?.accessibility;
   return (
     <html
-      lang="en"
+      lang={user?.locale ?? "en"}
       className="dark h-full"
       data-theme="gold"
+      data-motion={accessibility?.motion === "reduce" ? "reduce" : undefined}
+      data-contrast={accessibility?.contrast === "more" ? "more" : undefined}
+      data-text-size={accessibility && accessibility.textSize !== "default" ? accessibility.textSize : undefined}
       suppressHydrationWarning
     >
       <head>

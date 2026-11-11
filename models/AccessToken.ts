@@ -9,19 +9,26 @@ const accessTokenSchema = new Schema(
       index: true,
     },
     clientId: { type: String, required: true, index: true },
+    // "machine": the client credentials grant (lib/oauth/client-credentials.ts), an app acting as itself,
+    // with no person or session behind it.
+    kind: { type: String, enum: ["user", "machine"], default: "user" },
     userId: {
       type: Schema.Types.ObjectId,
       ref: "User",
-      required: true,
+      default: null,
       index: true,
     },
     sessionId: {
       type: Schema.Types.ObjectId,
       ref: "Session",
-      required: true,
+      default: null,
       index: true,
     },
     scope: { type: String, required: true },
+    // Set for a JWT access token for an API (RFC 8707): its `aud`. Identity's own endpoints refuse these.
+    audience: { type: String, default: null },
+    // Organization context: UserInfo and introspection answer for it.
+    organizationId: { type: Schema.Types.ObjectId, ref: "Organization", default: null },
     expiresAt: { type: Date, required: true },
     revokedAt: { type: Date, default: null },
   },

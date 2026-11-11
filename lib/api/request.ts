@@ -1,4 +1,5 @@
 import { readLimitedText } from "@/lib/security/body";
+import { deviceIdFrom } from "@/lib/security/device";
 import { consumeRateLimit } from "@/lib/security/shared-rate-limit";
 import { NextRequest } from "next/server";
 import { getEnv } from "@/lib/config/env";
@@ -26,6 +27,33 @@ export async function enforceRateLimit(
       retryAfterSeconds: result.retryAfterSeconds,
     });
   }
+}
+
+/** Where a request came from, for the identity event log. */
+export function requestMeta(request: Request): { ipAddress: string; userAgent: string | null; place: string | null; deviceId: string | null } {
+  return { ipAddress: getClientIp(request), userAgent: request.headers.get("user-agent"), place: placeFromRequest(request), deviceId: deviceIdFrom(request) };
+}
+
+/**
+ * Roughly where a request came from ("Mumbai, IN"), from the location
+ * headers the hosting edge adds (Vercel, Cloudflare). Shown to the account's
+ * owner beside a session; it's a hint, not proof: elsewhere a client could set
+ * these headers itself.
+ */
+export function placeFromRequest(request: Request): string | null {
+  const header = (name: string) => {
+    const value = request.headers.get(name);
+    if (!value) return null;
+    try {
+      return decodeURIComponent(value).trim().slice(0, 60) || null;
+    } catch {
+      return null;
+    }
+  };
+  const country = header("x-vercel-ip-country") ?? header("cf-ipcountry");
+  const city = header("x-vercel-ip-city") ?? header("cf-ipcity");
+  if (!country || country === "XX") return city;
+  return city ? `${city}, ${country}` : country;
 }
 
 export async function enforceCsrfForCookieAuth(

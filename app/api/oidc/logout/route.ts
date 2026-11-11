@@ -1,4 +1,4 @@
-import { enforceCsrfForCookieAuth, readFormBody } from "@/lib/api/request";
+import { enforceCsrfForCookieAuth, readFormBody, requestMeta } from "@/lib/api/request";
 import { NextRequest, NextResponse } from "next/server";
 import { errorResponse } from "@/lib/api/errors";
 import { withDb } from "@/lib/api/with-db";
@@ -24,9 +24,10 @@ export async function POST(request: NextRequest) {
         postLogoutRedirectUri: params.get("post_logout_redirect_uri"),
         clientId: params.get("client_id"),
         state: params.get("state"),
+        request: requestMeta(request),
       });
 
-      const response = jsonResponse({ ok: true, redirectTo: result.redirectTo });
+      const response = jsonResponse({ ok: true, redirectTo: result.redirectTo, frontchannelLogoutUrls: result.frontchannelLogoutUrls });
       await clearSessionCookie(response);
       return response;
     });

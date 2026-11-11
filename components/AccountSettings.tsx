@@ -11,13 +11,17 @@ import {
   TextLink,
 } from "@/components/auth-ui";
 import { getCsrf } from "@/lib/auth/csrf-client";
+import { runFrontchannelLogout } from "@/lib/oidc/frontchannel-client";
+import { AvatarPicker } from "@/components/AvatarPicker";
 import type { PublicUser } from "@/types";
 
 type Props = {
   initialUser: PublicUser;
+  /** An admin, or the owner of an app: the OAuth apps link shows. */
+  ownsApps?: boolean;
 };
 
-export function AccountSettings({ initialUser }: Props) {
+export function AccountSettings({ initialUser, ownsApps = false }: Props) {
   const [user, setUser] = useState(initialUser);
   const [csrf, setCsrf] = useState("");
   const [profileError, setProfileError] = useState<string | null>(null);
@@ -108,11 +112,14 @@ export function AccountSettings({ initialUser }: Props) {
   async function onLogout() {
     setBusy("logout");
     try {
-      await fetch("/api/auth/logout", {
+      const response = await fetch("/api/auth/logout", {
         method: "POST",
         credentials: "include",
         headers: { "x-csrf-token": csrf || (await getCsrf()) },
       });
+      // Apps Identity couldn't reach directly sign out in hidden frames first.
+      const data = (await response.json().catch(() => ({}))) as { frontchannelLogoutUrls?: string[] };
+      await runFrontchannelLogout(data.frontchannelLogoutUrls);
     } finally {
       window.location.assign("/login");
     }
@@ -141,8 +148,16 @@ export function AccountSettings({ initialUser }: Props) {
         footer={
           <div className="flex flex-wrap items-center justify-center gap-4">
             <TextLink href="/spaces">Spaces</TextLink>
+            <TextLink href="/account/privacy">Privacy</TextLink>
             {user.roles.includes("admin") ? (
-              <TextLink href="/clients">OAuth clients</TextLink>
+              <>
+                <TextLink href="/clients">OAuth clients</TextLink>
+                <TextLink href="/apis">APIs</TextLink>
+                <TextLink href="/admin/security">Account protection</TextLink>
+                <TextLink href="/admin/audit">Audit log</TextLink>
+              </>
+            ) : ownsApps ? (
+              <TextLink href="/clients">Your apps</TextLink>
             ) : null}
             <button
               type="button"
@@ -187,6 +202,11 @@ export function AccountSettings({ initialUser }: Props) {
                 Edit details
               </h2>
             </div>
+            <AvatarPicker
+              avatarUrl={user.avatarUrl}
+              name={user.displayName}
+              onChange={(avatarUrl) => setUser((current) => ({ ...current, avatarUrl }))}
+            />
             <FormField
               label="First name"
               name="firstName"
@@ -221,13 +241,18 @@ export function AccountSettings({ initialUser }: Props) {
             </SubmitButton>
           </form>
 
-          <div className="border-t border-[var(--hairline)] pt-8">
+          <div id="password" className="scroll-mt-8 border-t border-[var(--hairline)] pt-8">
             <p className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--muted-foreground)]">
               Security
             </p>
             <h2 className="mt-2 font-display text-xl font-semibold tracking-tight">
               Password
             </h2>
+            {user.passwordBreached ? (
+              <p role="alert" className="mt-3 rounded-xl border border-[var(--hairline)] px-3 py-2 text-sm">
+                Your password has appeared in a data breach elsewhere. Change it now.
+              </p>
+            ) : null}
 
             {user.hasPassword ? (
               <form
@@ -286,6 +311,7 @@ export function AccountSettings({ initialUser }: Props) {
               data in the Noirly apps for good.
             </p>
             <div className="mt-4 flex flex-wrap gap-x-6 gap-y-2">
+              <TextLink href="/docs">Docs</TextLink>
               <TextLink href="/privacy">Privacy policy</TextLink>
               <TextLink href="/delete-account" className="text-red-400 hover:text-red-300">
                 Delete account

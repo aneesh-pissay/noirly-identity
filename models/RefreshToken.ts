@@ -27,6 +27,10 @@ const refreshTokenSchema = new Schema(
       index: true,
     },
     scope: { type: String, required: true },
+    // APIs this grant covers (RFC 8707); a refresh can ask for a token for any of them.
+    resources: { type: [String], default: [] },
+    // Organization context: refreshes stay in it.
+    organizationId: { type: Schema.Types.ObjectId, ref: "Organization", default: null },
     expiresAt: { type: Date, required: true },
     revokedAt: { type: Date, default: null },
     replacedByTokenHash: { type: String, default: null },

@@ -1,12 +1,12 @@
 import { NextRequest } from "next/server";
 import { errorResponse } from "@/lib/api/errors";
-import { enforceCsrfForCookieAuth, enforceRateLimit, readJsonBody } from "@/lib/api/request";
+import { enforceCsrfForCookieAuth, enforceRateLimit, readJsonBody, requestMeta } from "@/lib/api/request";
 import { withDb } from "@/lib/api/with-db";
 import { registerUser } from "@/lib/auth/auth-service";
 import { setSessionCookie, ensureCsrfCookie } from "@/lib/security/cookies";
 import { jsonResponse } from "@/lib/security/headers";
-import { getClientIp } from "@/lib/security/rate-limit";
 import { registerSchema } from "@/lib/validation/schemas";
+import { verifySignupChallenge } from "@/lib/security/signup-protection";
 
 export async function POST(request: NextRequest) {
   try {
@@ -26,8 +26,10 @@ export async function POST(request: NextRequest) {
         );
       }
 
+      // A browser signing up proves it spent a moment's work first.
+      await verifySignupChallenge(parsed.data.challenge, parsed.data.solution);
       const result = await registerUser(parsed.data, {
-        ipAddress: getClientIp(request),
+        ...requestMeta(request),
         userAgent: request.headers.get("user-agent"),
       });
 

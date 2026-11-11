@@ -2,6 +2,10 @@ import { isBlockedUser } from "@/lib/auth/user-policy";
 import { OAuthError } from "@/lib/api/errors";
 import { resolveAccessToken } from "@/lib/tokens/token-service";
 import { User } from "@/models/User";
+import { scopedClaims } from "@/lib/oidc/claims";
+import { noteDetailsRead } from "@/lib/account/app-access";
+import { orgClaims, organizationsClaim } from "@/lib/oauth/org-context";
+import { permissionsClaim } from "@/lib/authz/delivery";
 
 export function extractBearerToken(request: Request): string | null {
   const header = request.headers.get("authorization");
@@ -23,28 +27,18 @@ export async function buildUserInfo(accessToken: string) {
     throw new OAuthError("invalid_token", "Access token is invalid or expired", 401);
   }
 
+  await noteDetailsRead(user._id, token.clientId);
   const scopes = new Set(token.scope.split(/\s+/));
-  const claims: Record<string, unknown> = {
-    sub: String(user._id),
-  };
-
-  if (scopes.has("email")) {
-    claims.email = user.email;
-    claims.email_verified = user.emailVerified;
-  }
-
-  if (scopes.has("profile")) {
-    claims.name = user.displayName;
-    claims.given_name = user.firstName;
-    claims.family_name = user.lastName;
-    if (user.avatarUrl) {
-      claims.picture = user.avatarUrl;
+  const claims: Record<string, unknown> = { sub: String(user._id), ...scopedClaims(user, scopes) };
+  if (scopes.has("organizations")) claims.organizations = await organizationsClaim(user._id);
+  // A token scoped to an organization answers for it while the person still belongs.
+  if (token.organizationId) {
+    try {
+      Object.assign(claims, await orgClaims(token.organizationId, user._id));
+      if (scopes.has("permissions")) claims.permissions = await permissionsClaim(String(token.organizationId), String(user._id), token.sessionId);
+    } catch {
+      throw new OAuthError("invalid_token", "Access token is invalid or expired", 401);
     }
   }
-
-  if (scopes.has("roles")) {
-    claims.roles = user.roles;
-  }
-
   return claims;
 }

@@ -1,31 +1,12 @@
-import { isBlockedUser } from "@/lib/auth/user-policy";
-import { requireSecondFactor, type MobileMfaContext } from "@/lib/security/mfa";
 import { createHash } from "node:crypto";
 import { createRemoteJWKSet, jwtVerify } from "jose";
 import { AppError } from "@/lib/api/errors";
-import { normalizeEmail, toPublicUser } from "@/lib/auth/user-mapper";
+import { normalizeEmail } from "@/lib/auth/user-mapper";
+import { loginWithProviderProfile, type ProviderLoginMeta, type ProviderProfile } from "@/lib/auth/provider-login";
 import { getEnv } from "@/lib/config/env";
 import { generateSecureToken } from "@/lib/security/crypto";
-import { createSession, revokeAllUserSessions } from "@/lib/sessions/session-service";
-import { AccessToken } from "@/models/AccessToken";
-import { AuthorizationCode } from "@/models/AuthorizationCode";
-import { LinkedAccount } from "@/models/LinkedAccount";
-import { MobileBrowserLogin } from "@/models/MobileBrowserLogin";
-import { PasswordResetToken } from "@/models/PasswordResetToken";
-import { RefreshToken } from "@/models/RefreshToken";
-import { Mfa, Passkey, SecurityChallenge } from "@/models/SecurityCredential";
-import { User, type UserDocument } from "@/models/User";
-import type { PublicUser } from "@/types";
 
-export type GoogleProfile = {
-  sub: string;
-  email: string;
-  emailVerified: boolean;
-  firstName: string;
-  lastName: string;
-  displayName: string;
-  avatarUrl: string | null;
-};
+export type GoogleProfile = ProviderProfile;
 
 export function isGoogleOAuthConfigured(): boolean {
   const env = getEnv();
@@ -138,103 +119,9 @@ export async function exchangeGoogleCode(input: {
   };
 }
 
-/**
- * Clears every way into an account that came from its unverified registrant:
- * password, authenticator, passkeys, other linked logins, sessions and tokens.
- */
-async function discardUnverifiedRegistration(user: Pick<UserDocument, "_id" | "passwordHash">) {
-  // In memory too: the caller saves this document again below.
-  user.passwordHash = null;
-  await Promise.all([
-    User.updateOne({ _id: user._id }, { $set: { passwordHash: null } }),
-    Mfa.deleteMany({ userId: user._id }),
-    Passkey.deleteMany({ userId: user._id }),
-    SecurityChallenge.deleteMany({ userId: user._id }),
-    LinkedAccount.deleteMany({ userId: user._id }),
-    PasswordResetToken.updateMany({ userId: user._id, usedAt: null }, { $set: { usedAt: new Date() } }),
-    MobileBrowserLogin.deleteMany({ userId: user._id }),
-    AccessToken.updateMany({ userId: user._id, revokedAt: null }, { $set: { revokedAt: new Date() } }),
-    RefreshToken.updateMany({ userId: user._id, revokedAt: null }, { $set: { revokedAt: new Date() } }),
-    AuthorizationCode.deleteMany({ userId: user._id }),
-    revokeAllUserSessions(user._id),
-  ]);
-}
-
-export async function loginWithGoogleProfile(
-  profile: GoogleProfile,
-  meta: { ipAddress?: string | null; userAgent?: string | null; mobileMfa?: MobileMfaContext },
-): Promise<{ user: PublicUser; sessionToken: string }> {
-  const linked = await LinkedAccount.findOne({
-    provider: "google",
-    providerAccountId: profile.sub,
-  });
-
-  let user = linked
-    ? await User.findById(linked.userId).select("+passwordHash")
-    : null;
-
-  if (!user) {
-    user = await User.findOne({ email: profile.email }).select("+passwordHash");
-    if (user) {
-      if (isBlockedUser(user)) {
-        throw new AppError("Unable to sign in", 401, "invalid_credentials");
-      }
-      if (!user.emailVerified) {
-        // Nobody ever proved they own this address, so anyone could have
-        // registered it first. Google now proves the owner: drop whatever the
-        // earlier registrant set up, or they keep a way into this account.
-        await discardUnverifiedRegistration(user);
-      }
-      await LinkedAccount.create({
-        userId: user._id,
-        provider: "google",
-        providerAccountId: profile.sub,
-      });
-    }
-  }
-
-  if (!user) {
-    user = await User.create({
-      email: profile.email,
-      passwordHash: null,
-      firstName: profile.firstName,
-      lastName: profile.lastName,
-      displayName: profile.displayName,
-      avatarUrl: profile.avatarUrl,
-      emailVerified: true,
-      status: "active",
-      roles: ["user"],
-    });
-    await LinkedAccount.create({
-      userId: user._id,
-      provider: "google",
-      providerAccountId: profile.sub,
-    });
-  }
-
-  if (isBlockedUser(user)) {
-    throw new AppError("Unable to sign in", 401, "invalid_credentials");
-  }
-
-  user.emailVerified = true;
-  if (user.status === "pending_verification") {
-    user.status = "active";
-  }
-  if (!user.avatarUrl && profile.avatarUrl) {
-    user.avatarUrl = profile.avatarUrl;
-  }
-  await requireSecondFactor(user._id.toString(), meta.mobileMfa);
-
-  user.lastLoginAt = new Date();
-  await user.save();
-
-  const { token } = await createSession({
-    userId: user._id,
-    ipAddress: meta.ipAddress,
-    userAgent: meta.userAgent,
-  });
-
-  return { user: toPublicUser(user), sessionToken: token };
+/** Google sign-in: the shared provider sign-in (lib/auth/provider-login.ts) for Google profiles. */
+export function loginWithGoogleProfile(profile: GoogleProfile, meta: ProviderLoginMeta) {
+  return loginWithProviderProfile("google", profile, meta);
 }
 
 export function newGoogleOAuthSecrets() {

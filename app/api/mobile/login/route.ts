@@ -1,10 +1,9 @@
 import { NextRequest } from "next/server";
 import { errorResponse } from "@/lib/api/errors";
-import { enforceRateLimit, readJsonBody } from "@/lib/api/request";
+import { enforceRateLimit, readJsonBody, requestMeta } from "@/lib/api/request";
 import { withDb } from "@/lib/api/with-db";
 import { mobileLoginWithPassword } from "@/lib/mobile/auth";
 import { jsonResponse } from "@/lib/security/headers";
-import { getClientIp } from "@/lib/security/rate-limit";
 import { mobileLoginSchema } from "@/lib/validation/schemas";
 
 export async function POST(request: NextRequest) {
@@ -21,7 +20,7 @@ export async function POST(request: NextRequest) {
       }
 
       const tokens = await mobileLoginWithPassword(parsed.data, {
-        ipAddress: getClientIp(request),
+        ...requestMeta(request),
         userAgent: request.headers.get("user-agent"),
       });
       return jsonResponse(tokens);

@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { errorResponse } from "@/lib/api/errors";
-import { enforceCsrfForCookieAuth, readJsonBody } from "@/lib/api/request";
+import { enforceCsrfForCookieAuth, readJsonBody, requestMeta } from "@/lib/api/request";
 import { withDb } from "@/lib/api/with-db";
 import { getCurrentUser, updateUserProfile } from "@/lib/auth/auth-service";
 import {
@@ -47,7 +47,7 @@ export async function PATCH(request: NextRequest) {
           { status: 400 },
         );
       }
-      const user = await updateUserProfile(token, parsed.data);
+      const user = await updateUserProfile(token, parsed.data, requestMeta(request));
       return jsonResponse({ user });
     });
   } catch (error) {

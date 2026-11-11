@@ -34,7 +34,7 @@ const features = [
 export default function Home() {
   return (
     <div className="flex min-h-dvh flex-1 flex-col">
-      <MarketingHeader />
+      <MarketingHeader links={[{ href: "/docs", label: "Docs" }]} />
 
       <main id="main" className="flex flex-1 flex-col">
         <section className="shell section-y">

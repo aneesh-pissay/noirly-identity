@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { errorResponse } from "@/lib/api/errors";
-import { enforceCsrfForCookieAuth } from "@/lib/api/request";
+import { enforceCsrfForCookieAuth, requestMeta } from "@/lib/api/request";
 import { withDb } from "@/lib/api/with-db";
 import { logoutCurrentSession } from "@/lib/auth/auth-service";
 import {
@@ -24,8 +24,8 @@ export async function POST(request: NextRequest) {
         await revokeAccessTokensForSession(ctx.session._id);
         await revokeRefreshTokensForSession(ctx.session._id);
       }
-      await logoutCurrentSession(token);
-      const response = jsonResponse({ ok: true });
+      const { frontchannelLogoutUrls } = await logoutCurrentSession(token, requestMeta(request));
+      const response = jsonResponse({ ok: true, frontchannelLogoutUrls });
       await clearSessionCookie(response);
       return response;
     });

@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { AuthShell } from "@noirly-dev/ui";
 import { AuthLogo } from "@/components/AuthLogo";
 import {
+  ProviderButton,
   BusyOverlay,
   FormField,
   GoogleButton,
@@ -17,6 +18,7 @@ import { PasskeySignIn } from "@/components/security/PasskeySignIn";
 import { GoogleOneTap } from "@/components/GoogleOneTap";
 import { OrDivider } from "@/components/OrDivider";
 import { getCsrf } from "@/lib/auth/csrf-client";
+import type { SignInOptions } from "@/lib/auth/discovery";
 import { goReturnTo, isPopupLogin, withPopup, withReturnTo } from "@/lib/auth/return-to";
 import { forgetEmail, recentEmailsSnapshot, rememberEmail, serverRecentEmailsSnapshot, subscribeRecentEmails } from "@/lib/auth/recent-emails";
 
@@ -37,6 +39,7 @@ export function LoginForm({
   const [csrf, setCsrf] = useState("");
   const [googleEnabled, setGoogleEnabled] = useState(false);
   const [googleClientId, setGoogleClientId] = useState<string | null>(null);
+  const [otherProviders, setOtherProviders] = useState<Array<"apple" | "microsoft" | "github">>([]);
   const recentEmails = JSON.parse(useSyncExternalStore(subscribeRecentEmails, recentEmailsSnapshot, serverRecentEmailsSnapshot)) as string[];
   const [email, setEmail] = useState(currentEmail ?? "");
   const [submitting, setSubmitting] = useState(false);
@@ -45,10 +48,11 @@ export function LoginForm({
     void getCsrf().then(setCsrf);
     if (currentEmail) rememberEmail(currentEmail);
     void fetch("/api/auth/oauth-providers")
-      .then((res) => res.json() as Promise<{ google?: boolean; googleClientId?: string | null }>)
+      .then((res) => res.json() as Promise<{ google?: boolean; googleClientId?: string | null; apple?: boolean; microsoft?: boolean; github?: boolean }>)
       .then((data) => {
         setGoogleEnabled(Boolean(data.google));
         setGoogleClientId(data.googleClientId ?? null);
+        setOtherProviders((["apple", "microsoft", "github"] as const).filter((p) => data[p]));
       })
       .catch(() => undefined);
   }, [currentEmail]);
@@ -98,7 +102,100 @@ export function LoginForm({
     }
   }
 
+  const [linkSentTo, setLinkSentTo] = useState<string | null>(null);
+  const [options, setOptions] = useState<SignInOptions | null>(null);
+
+  /** Step one of signing in: which ways this address can use. */
+  async function discover() {
+    const address = email.trim();
+    if (!address) return;
+    setError(null);
+    setSubmitting(true);
+    try {
+      const res = await fetch("/api/auth/discover", {
+        method: "POST",
+        credentials: "include",
+        headers: { "content-type": "application/json", "x-csrf-token": csrf || (await getCsrf()) },
+        body: JSON.stringify({ email: address }),
+      });
+      const data = (await res.json()) as SignInOptions & { message?: string };
+      if (!res.ok) setError(data.message ?? "Couldn't continue");
+      // An organization that requires its own sign-in: straight there.
+      // Break-glass accounts (lib/federation/enforcement.ts) come in by /login?break_glass=1, for when the IdP is down.
+      else if (data.sso?.required && searchParams.get("break_glass") === "1") setOptions({ ...data, password: true })
+      // A full navigation (an API route that redirects off-site to the IdP), so an absolute URL.
+      else if (data.sso?.required) window.location.assign(new URL(`${data.sso.startUrl}&return_to=${encodeURIComponent(returnTo ?? "/account")}`, window.location.origin).toString());
+      else setOptions(data);
+    } catch {
+      setError("Couldn't continue");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+  const [code, setCode] = useState("");
+
+  /** The code from the same email, typed here instead of opening the link. */
+  async function signInWithCode() {
+    if (!linkSentTo) return;
+    setError(null);
+    setSubmitting(true);
+    try {
+      const res = await fetch("/api/auth/magic-link/code", {
+        method: "POST",
+        credentials: "include",
+        headers: { "content-type": "application/json", "x-csrf-token": csrf || (await getCsrf()) },
+        body: JSON.stringify({ email: linkSentTo, code }),
+      });
+      const data = (await res.json()) as { redirectTo?: string; error?: string; message?: string };
+      if (res.ok) {
+        rememberEmail(linkSentTo);
+        goReturnTo(data.redirectTo ?? returnTo ?? "/account");
+        return;
+      }
+      if (data.error === "mfa_required") {
+        window.location.assign(withReturnTo("/mfa", returnTo));
+        return;
+      }
+      setError(data.message ?? "Sign-in failed");
+    } catch {
+      setError("Sign-in failed");
+    }
+    setSubmitting(false);
+  }
+
+  /** Emails a sign-in link instead of using a password. */
+  async function sendLink() {
+    const address = email.trim();
+    if (!address) {
+      setError("Enter your email address first");
+      return;
+    }
+    setError(null);
+    setLinkSentTo(null);
+    setSubmitting(true);
+    try {
+      const res = await fetch("/api/auth/magic-link", {
+        method: "POST",
+        credentials: "include",
+        headers: { "content-type": "application/json", "x-csrf-token": csrf || (await getCsrf()) },
+        body: JSON.stringify({ email: address, return_to: returnTo }),
+      });
+      const data = (await res.json()) as { message?: string };
+      if (!res.ok) setError(data.message ?? "Couldn't send a link");
+      else setLinkSentTo(address);
+    } catch {
+      setError("Couldn't send a link");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   const registerHref = withPopup(withReturnTo("/register", returnTo), compact);
+  const providerButtons = otherProviders.length ? (
+    <div className="flex flex-col gap-2">
+      {otherProviders.map((provider) => <ProviderButton key={provider} provider={provider} returnTo={returnTo ?? "/account"} />)}
+    </div>
+  ) : null;
   const googleBlock =
     googleEnabled && googleClientId ? (
       <>
@@ -108,11 +205,18 @@ export function LoginForm({
           popup={compact}
           autoPrompt={!selectAccount}
         />
+        {providerButtons}
         <OrDivider />
       </>
     ) : googleEnabled ? (
       <>
         <GoogleButton returnTo={returnTo ?? "/account"} />
+        {providerButtons}
+        <OrDivider />
+      </>
+    ) : providerButtons ? (
+      <>
+        {providerButtons}
         <OrDivider />
       </>
     ) : null;
@@ -155,6 +259,7 @@ export function LoginForm({
                     return;
                   }
                   setEmail(item);
+                  setOptions(null);
                 }}
               >
                 {item}
@@ -216,29 +321,94 @@ export function LoginForm({
             {accountsBlock}
           </>
         )}
-        <form className="flex flex-col gap-4" onSubmit={onSubmit}>
-          <FormField
-            label="Email"
-            name="email"
-            type="email"
-            placeholder="you@noirly.com"
-            required
-            autoComplete="username"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-          />
-          <FormField
-            label="Password"
-            name="password"
-            type="password"
-            placeholder="••••••••••"
-            required
-            autoComplete="current-password"
-          />
-          <SubmitButton busy={submitting} busyLabel="Signing in">
-            Sign in
-          </SubmitButton>
-        </form>
+        {!options ? (
+          // Step one: the address, then the ways it can sign in.
+          <form className="flex flex-col gap-4" onSubmit={(event) => { event.preventDefault(); void discover(); }}>
+            <FormField
+              label="Email"
+              name="email"
+              type="email"
+              placeholder="you@noirly.com"
+              required
+              autoComplete="username webauthn"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+            />
+            <SubmitButton busy={submitting} busyLabel="Checking">
+              Continue
+            </SubmitButton>
+          </form>
+        ) : (
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center justify-between gap-3 rounded-xl border border-[var(--hairline)] px-3 py-2 text-sm">
+              <span className="min-w-0 truncate">{options.email}</span>
+              <button type="button" className="shrink-0 text-xs text-[var(--muted-foreground)] underline underline-offset-4 hover:text-[var(--foreground)]" onClick={() => { setOptions(null); setLinkSentTo(null); setError(null); }}>
+                Use another email
+              </button>
+            </div>
+            {options.sso ? (
+              <a className="inline-flex h-11 items-center justify-center rounded-xl border border-[var(--hairline)] px-4 text-sm font-medium hover:bg-[var(--surface-muted,transparent)]" href={`${options.sso.startUrl}&return_to=${encodeURIComponent(returnTo ?? "/account")}`}>
+                Sign in with {options.sso.name}
+              </a>
+            ) : null}
+            {options.providers.map((provider) =>
+              provider === "google"
+                ? <GoogleButton key={provider} returnTo={returnTo ?? "/account"} loginHint={options.email} />
+                : <ProviderButton key={provider} provider={provider} returnTo={returnTo ?? "/account"} />,
+            )}
+            {options.passkey ? <p className="text-sm text-[var(--muted-foreground)]">This account has a passkey: use the passkey sign-in above.</p> : null}
+            {options.password ? (
+              <form className="flex flex-col gap-4" onSubmit={onSubmit}>
+                {/* For password managers: the address this password belongs to. */}
+                <input type="email" name="email" value={options.email} autoComplete="username" readOnly hidden />
+                <FormField
+                  label="Password"
+                  name="password"
+                  type="password"
+                  placeholder="••••••••••"
+                  required
+                  autoFocus
+                  autoComplete="current-password"
+                />
+                <SubmitButton busy={submitting} busyLabel="Signing in">
+                  Sign in
+                </SubmitButton>
+              </form>
+            ) : null}
+            {options.emailLink ? (
+              <button
+                type="button"
+                disabled={submitting}
+                onClick={() => void sendLink()}
+                className="text-sm text-[var(--muted-foreground)] underline underline-offset-4 hover:text-[var(--foreground)] disabled:opacity-50"
+              >
+                {options.password ? "Email me a sign-in link instead" : "Email me a sign-in link"}
+              </button>
+            ) : null}
+          </div>
+        )}
+        {linkSentTo ? (
+          <>
+            <Notice tone="success">
+              If {linkSentTo} has a Noirly account, we&apos;ve sent it a sign-in link and code. Open the link in this browser, or type the code here, within 15 minutes.
+            </Notice>
+            <form className="flex flex-col gap-3" onSubmit={(event) => { event.preventDefault(); void signInWithCode(); }}>
+              <FormField
+                label="Code from the email"
+                name="code"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                placeholder="123 456"
+                maxLength={7}
+                value={code}
+                onChange={(event) => setCode(event.target.value)}
+              />
+              <SubmitButton busy={submitting} busyLabel="Signing in" disabled={code.replace(/\s+/g, "").length !== 6}>
+                Sign in with code
+              </SubmitButton>
+            </form>
+          </>
+        ) : null}
         {error ? <Notice tone="error">{error}</Notice> : null}
         {unverifiedEmail ? (
           <TextLink

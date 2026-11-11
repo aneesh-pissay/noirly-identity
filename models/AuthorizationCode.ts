@@ -26,6 +26,12 @@ const authorizationCodeSchema = new Schema(
     codeChallengeMethod: { type: String, enum: ["S256"], default: null },
     nonce: { type: String, default: null },
     authTime: { type: Date, required: true },
+    // How the session was signed in, for the ID token's amr and acr.
+    methods: { type: [String], default: [] },
+    // RFC 8707: APIs the app may get tokens for with this grant (lib/oauth/resources.ts).
+    resources: { type: [String], default: [] },
+    // Organization context (lib/oauth/org-context.ts): tokens from this code are scoped to it.
+    organizationId: { type: Schema.Types.ObjectId, ref: "Organization", default: null },
     expiresAt: { type: Date, required: true },
     usedAt: { type: Date, default: null },
   },

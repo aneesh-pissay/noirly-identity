@@ -134,7 +134,7 @@ describe("deletion notices", () => {
     expect(protectedHeader.typ).toBe("secevent+jwt");
     expect(payload.sub).toBe(String(user._id));
     expect(payload.events).toEqual({ [ACCOUNT_DELETED_EVENT]: {} });
-    expect(await DeletedAccount.countDocuments()).toBe(0);
+    expect((await DeletedAccount.findOne({ sub: String(user._id) }).lean())?.delivered.map((d) => d.clientId)).toEqual(["noirly-flow"]);
   });
 
   it("keeps failed notices and delivers them on retry", async () => {
@@ -154,6 +154,8 @@ describe("deletion notices", () => {
     useWebhooks(`noirly-flow=${up.url}`);
     expect(await retryPendingDeletionNotices()).toBe(0);
     expect(up.bodies).toHaveLength(1);
-    expect(await DeletedAccount.countDocuments()).toBe(0);
+    const after = await DeletedAccount.findOne({ sub: String(user._id) }).lean();
+    expect(after?.pending).toEqual([]);
+    expect(after?.delivered.map((d) => d.clientId)).toEqual(["noirly-flow"]);
   });
 });

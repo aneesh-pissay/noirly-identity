@@ -36,7 +36,7 @@ export async function createTestClient(overrides?: {
   requirePkce?: boolean;
   requireConsent?: boolean;
   allowedScopes?: Array<
-    "openid" | "profile" | "email" | "offline_access" | "roles" | "organizations"
+    "openid" | "profile" | "email" | "offline_access" | "roles" | "organizations" | "permissions"
   >;
   redirectUris?: string[];
 }) {

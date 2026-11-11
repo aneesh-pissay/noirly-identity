@@ -21,6 +21,9 @@ const envSchema = z
       .positive()
       .default(60 * 60 * 24 * 30),
     AUTH_CODE_TTL_SECONDS: z.coerce.number().int().positive().default(60),
+    // Signing key rollover (lib/oidc/keys.ts): how often, and how long a new key is published before it signs.
+    SIGNING_KEY_ROTATION_DAYS: z.coerce.number().positive().default(90),
+    SIGNING_KEY_PREPUBLISH_HOURS: z.coerce.number().min(2).default(48),
     EMAIL_TOKEN_TTL_SECONDS: z.coerce.number().int().positive().default(60 * 60 * 24),
     PASSWORD_RESET_TTL_SECONDS: z.coerce.number().int().positive().default(60 * 30),
     RESEND_VERIFICATION_COOLDOWN_SECONDS: z.coerce
@@ -47,8 +50,30 @@ const envSchema = z
     GOOGLE_CLIENT_SECRET: z.string().optional(),
     /** Extra Google OAuth client IDs (iOS/Android) accepted as id_token audiences. */
     GOOGLE_MOBILE_CLIENT_IDS: z.string().optional(),
+    /** Sign in with Apple (lib/auth/apple.ts): the Services ID, team, key id and .p8 key. */
+    APPLE_CLIENT_ID: z.string().optional(),
+    APPLE_TEAM_ID: z.string().optional(),
+    APPLE_KEY_ID: z.string().optional(),
+    APPLE_PRIVATE_KEY: z.string().optional(),
+    /** App bundle ids accepted as audiences of native Apple id_tokens. */
+    APPLE_MOBILE_CLIENT_IDS: z.string().optional(),
+    /** Sign in with Microsoft (lib/auth/oauth-providers.ts); tenant "common" takes personal and work accounts. */
+    MICROSOFT_CLIENT_ID: z.string().optional(),
+    MICROSOFT_CLIENT_SECRET: z.string().optional(),
+    MICROSOFT_TENANT: z.string().default("common"),
+    /** Sign in with GitHub (an OAuth app). */
+    GITHUB_CLIENT_ID: z.string().optional(),
+    GITHUB_CLIENT_SECRET: z.string().optional(),
+    /** Text messages for phone verification (lib/sms/sms-service.ts). Unset: "development" locally, none in production. */
+    SMS_PROVIDER: z.enum(["none", "development", "twilio"]).optional(),
+    TWILIO_ACCOUNT_SID: z.string().optional(),
+    TWILIO_AUTH_TOKEN: z.string().optional(),
+    /** A Twilio messaging service (MG…) or sending number (+…). */
+    TWILIO_FROM: z.string().optional(),
     /** `clientId=url` pairs: apps told when an account is deleted (lib/account/deletion-webhooks.ts). */
     ACCOUNT_DELETION_WEBHOOKS: z.string().optional(),
+    /** `clientId=url` pairs: apps told when one account is merged into another (lib/account/merge-webhooks.ts). */
+    ACCOUNT_MERGE_WEBHOOKS: z.string().optional(),
     /** clientId=url pairs told when a space changes (see lib/spaces/space-webhooks.ts). */
     SPACE_WEBHOOKS: z.string().optional(),
     /** Shown on /privacy and /delete-account as the place to send privacy requests. */
@@ -119,6 +144,8 @@ export function getEnv(): Env {
     ACCESS_TOKEN_TTL_SECONDS: process.env.ACCESS_TOKEN_TTL_SECONDS,
     REFRESH_TOKEN_TTL_SECONDS: process.env.REFRESH_TOKEN_TTL_SECONDS,
     AUTH_CODE_TTL_SECONDS: process.env.AUTH_CODE_TTL_SECONDS,
+    SIGNING_KEY_ROTATION_DAYS: process.env.SIGNING_KEY_ROTATION_DAYS,
+    SIGNING_KEY_PREPUBLISH_HOURS: process.env.SIGNING_KEY_PREPUBLISH_HOURS,
     EMAIL_TOKEN_TTL_SECONDS: process.env.EMAIL_TOKEN_TTL_SECONDS,
     PASSWORD_RESET_TTL_SECONDS: process.env.PASSWORD_RESET_TTL_SECONDS,
     RESEND_VERIFICATION_COOLDOWN_SECONDS:
@@ -138,7 +165,22 @@ export function getEnv(): Env {
     GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
     GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
     GOOGLE_MOBILE_CLIENT_IDS: process.env.GOOGLE_MOBILE_CLIENT_IDS,
+    APPLE_CLIENT_ID: process.env.APPLE_CLIENT_ID,
+    APPLE_TEAM_ID: process.env.APPLE_TEAM_ID,
+    APPLE_KEY_ID: process.env.APPLE_KEY_ID,
+    APPLE_PRIVATE_KEY: process.env.APPLE_PRIVATE_KEY,
+    APPLE_MOBILE_CLIENT_IDS: process.env.APPLE_MOBILE_CLIENT_IDS,
+    MICROSOFT_CLIENT_ID: process.env.MICROSOFT_CLIENT_ID,
+    MICROSOFT_CLIENT_SECRET: process.env.MICROSOFT_CLIENT_SECRET,
+    MICROSOFT_TENANT: process.env.MICROSOFT_TENANT || undefined,
+    GITHUB_CLIENT_ID: process.env.GITHUB_CLIENT_ID,
+    GITHUB_CLIENT_SECRET: process.env.GITHUB_CLIENT_SECRET,
+    SMS_PROVIDER: process.env.SMS_PROVIDER || undefined,
+    TWILIO_ACCOUNT_SID: process.env.TWILIO_ACCOUNT_SID,
+    TWILIO_AUTH_TOKEN: process.env.TWILIO_AUTH_TOKEN,
+    TWILIO_FROM: process.env.TWILIO_FROM,
     ACCOUNT_DELETION_WEBHOOKS: process.env.ACCOUNT_DELETION_WEBHOOKS,
+    ACCOUNT_MERGE_WEBHOOKS: process.env.ACCOUNT_MERGE_WEBHOOKS,
     SPACE_WEBHOOKS: process.env.SPACE_WEBHOOKS,
     PRIVACY_CONTACT_EMAIL: process.env.PRIVACY_CONTACT_EMAIL || undefined,
   });
@@ -154,6 +196,7 @@ export function getEnv(): Env {
     ...parsed.data,
     JWT_PRIVATE_KEY: normalizePem(parsed.data.JWT_PRIVATE_KEY),
     JWT_PUBLIC_KEY: normalizePem(parsed.data.JWT_PUBLIC_KEY),
+    APPLE_PRIVATE_KEY: parsed.data.APPLE_PRIVATE_KEY ? normalizePem(parsed.data.APPLE_PRIVATE_KEY) : undefined,
     SMTP_SECURE: parsed.data.SMTP_SECURE ?? false,
   };
 

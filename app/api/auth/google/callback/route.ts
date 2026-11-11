@@ -1,15 +1,16 @@
 import { mfaRedirect } from "@/lib/security/mfa-redirect";
 import { NextRequest } from "next/server";
-import { errorResponse } from "@/lib/api/errors";
-import { enforceRateLimit } from "@/lib/api/request";
+import { AppError, errorResponse } from "@/lib/api/errors";
+import { linkGoogle } from "@/lib/account/identities";
+import { validateSession } from "@/lib/sessions/session-service";
+import { enforceRateLimit, requestMeta } from "@/lib/api/request";
 import { withDb } from "@/lib/api/with-db";
 import { exchangeGoogleCode, loginWithGoogleProfile } from "@/lib/auth/google";
 import { readOAuthState } from "@/lib/auth/oauth-state";
 import { stripAuthorizePrompt } from "@/lib/auth/return-to";
 import { getEnv, isProduction } from "@/lib/config/env";
-import { setSessionCookie } from "@/lib/security/cookies";
+import { getSessionTokenFromCookies, setSessionCookie } from "@/lib/security/cookies";
 import { redirectGet } from "@/lib/security/headers";
-import { getClientIp } from "@/lib/security/rate-limit";
 import { safeEqualString } from "@/lib/security/crypto";
 
 const GOOGLE_STATE_COOKIE = "noirly_google_oauth";
@@ -49,8 +50,32 @@ export async function GET(request: NextRequest) {
         code,
         codeVerifier: payload.codeVerifier,
       });
+
+      if (payload.linkSessionId) {
+        // Linking from settings: the same browser session that asked, still signed in. No new session.
+        const back = (outcome: Record<string, string>) => {
+          const url = new URL("/account", env.APP_URL);
+          url.searchParams.set("provider", "google");
+          for (const [key, value] of Object.entries(outcome)) url.searchParams.set(key, value);
+          url.hash = "sign-in-methods";
+          const response = redirectGet(url);
+          response.cookies.set(GOOGLE_STATE_COOKIE, "", { httpOnly: true, secure: isProduction(), sameSite: "lax", path: "/api/auth/google", maxAge: 0 });
+          return response;
+        };
+        const ctx = await validateSession(await getSessionTokenFromCookies());
+        if (!ctx || ctx.session._id.toString() !== payload.linkSessionId) return back({ link_error: "session_changed" });
+        try {
+          await linkGoogle(ctx.userId, profile, requestMeta(request));
+        } catch (error) {
+          // A code, not the message: the page says it in its own words, so a crafted link can't put text there.
+          if (error instanceof AppError) return back({ link_error: error.code });
+          throw error;
+        }
+        return back({ linked: "google" });
+      }
+
       const result = await loginWithGoogleProfile(profile, {
-        ipAddress: getClientIp(request),
+        ...requestMeta(request),
         userAgent: request.headers.get("user-agent"),
       });
 

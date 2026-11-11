@@ -10,6 +10,7 @@ import { getCsrf } from "@/lib/auth/csrf-client";
  * with it; Google-only accounts type their email instead.
  */
 export function DeleteAccountForm({ email, hasPassword }: { email: string; hasPassword: boolean }) {
+  const [deleteAfter, setDeleteAfter] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
@@ -32,11 +33,12 @@ export function DeleteAccountForm({ email, hasPassword }: { email: string; hasPa
             : { confirmEmail: String(form.get("confirmEmail") ?? "") },
         ),
       });
-      const data = (await res.json().catch(() => ({}))) as { message?: string };
+      const data = (await res.json().catch(() => ({}))) as { message?: string; deleteAfter?: string };
       if (!res.ok) {
-        setError(data.message ?? "Could not delete the account");
+        setError(data.message ?? "Could not close the account");
         return;
       }
+      setDeleteAfter(data.deleteAfter ?? null);
       setDone(true);
     } catch {
       setError("Could not delete the account. Check your connection and try again.");
@@ -48,16 +50,19 @@ export function DeleteAccountForm({ email, hasPassword }: { email: string; hasPa
   if (done) {
     return (
       <Notice tone="success">
-        Your account and its data have been deleted, and you have been signed out everywhere. Thank you for using Noirly.
+        Your account is closed and you&apos;ve been signed out everywhere. It will be deleted for good{deleteAfter ? ` on ${new Date(deleteAfter).toLocaleDateString()}` : " in 14 days"}, with its data in every Noirly app. Changed your mind? Use the link we emailed you before then.
       </Notice>
     );
   }
 
   return (
     <form className="flex max-w-md flex-col gap-4" onSubmit={onSubmit}>
-      {busy ? <BusyOverlay label="Deleting account" /> : null}
+      {busy ? <BusyOverlay label="Closing account" /> : null}
       <p>
         Signed in as <strong>{email}</strong>.
+      </p>
+      <p className="text-sm">
+        First, you can <a className="underline" href="/api/auth/export" download>download everything Noirly Identity holds about you</a>. Closing signs you out everywhere at once; your account is then deleted for good after 14 days, and you can undo it from the email we send until then.
       </p>
       {hasPassword ? (
         <FormField label="Password" name="password" type="password" required autoComplete="current-password" />
@@ -78,12 +83,12 @@ export function DeleteAccountForm({ email, hasPassword }: { email: string; hasPa
           checked={understood}
           onChange={(e) => setUnderstood(e.target.checked)}
         />
-        <span>I understand this permanently deletes my account and my data in every Noirly app.</span>
+        <span>I understand that after 14 days this permanently deletes my account and my data in every Noirly app.</span>
       </label>
       {error ? <Notice tone="error">{error}</Notice> : null}
       <div>
         <Button type="submit" variant="destructive" disabled={!understood || busy}>
-          Delete my account
+          Close my account
         </Button>
       </div>
     </form>

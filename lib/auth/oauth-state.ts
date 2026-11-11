@@ -7,6 +7,8 @@ export type OAuthStatePayload = {
   returnTo: string;
   nonce: string;
   exp: number;
+  /** Linking from settings: the session that asked, which must still be the one finishing. */
+  linkSessionId?: string;
 };
 
 export function signOAuthState(payload: OAuthStatePayload): string {

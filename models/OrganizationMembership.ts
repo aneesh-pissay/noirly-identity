@@ -21,6 +21,13 @@ const organizationMembershipSchema = new Schema(
       required: true,
       default: "member",
     },
+    // Delegated administration (lib/spaces/space-service.ts): null lets an admin do
+    // everything admins can; a list limits them to those areas.
+    adminAreas: { type: [String], enum: ["members", "settings", "domains", "apps", "access"], default: undefined },
+    // What the organization knows about the member, for access conditions (lib/authz/conditions.ts): department, region…
+    attributes: { type: Map, of: String, default: undefined },
+    // SCIM (lib/scim): the directory's id for this person, when provisioned from one.
+    scimExternalId: { type: String, default: null },
   },
   {
     timestamps: true,

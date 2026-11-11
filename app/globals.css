@@ -46,3 +46,31 @@
 .brand-mark--on-surface {
   --brand-knockout: var(--surface);
 }
+
+/* ==========================================================================
+   Accessibility preferences (lib/account/preferences.ts), set on <html> by
+   the root layout for a signed-in account. "system" leaves the device's own
+   settings in charge.
+   ========================================================================== */
+
+html[data-text-size="large"] {
+  font-size: 112.5%;
+}
+
+html[data-text-size="larger"] {
+  font-size: 125%;
+}
+
+html[data-motion="reduce"] *,
+html[data-motion="reduce"] *::before,
+html[data-motion="reduce"] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
+html[data-contrast="more"] {
+  --muted-foreground: var(--foreground);
+  --hairline: color-mix(in oklab, var(--foreground) 55%, transparent);
+}

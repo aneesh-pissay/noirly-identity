@@ -1,7 +1,7 @@
 import { mfaRedirect } from "@/lib/security/mfa-redirect";
 import { NextRequest } from "next/server";
 import { AppError, errorResponse } from "@/lib/api/errors";
-import { enforceRateLimit, readFormBody, readJsonBody } from "@/lib/api/request";
+import { enforceRateLimit, readFormBody, readJsonBody, requestMeta } from "@/lib/api/request";
 import { withDb } from "@/lib/api/with-db";
 import {
   isGoogleOAuthConfigured,
@@ -12,7 +12,6 @@ import { resolveOneTapReturnTo } from "@/lib/auth/one-tap-return";
 import { getEnv } from "@/lib/config/env";
 import { setSessionCookie } from "@/lib/security/cookies";
 import { jsonResponse, redirectGet } from "@/lib/security/headers";
-import { getClientIp } from "@/lib/security/rate-limit";
 
 async function credentialFromRequest(request: NextRequest): Promise<{
   credential: string;
@@ -69,7 +68,7 @@ export async function POST(request: NextRequest) {
         nonce: parsed.nonce,
       });
       const result = await loginWithGoogleProfile(profile, {
-        ipAddress: getClientIp(request),
+        ...requestMeta(request),
         userAgent: request.headers.get("user-agent"),
       });
 

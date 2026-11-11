@@ -15,20 +15,18 @@ import {
 } from "@/lib/mobile/mint-tokens";
 import { exchangeRefreshToken } from "@/lib/oauth/token";
 import { hashToken } from "@/lib/security/crypto";
-import { refreshSessionExpiry } from "@/lib/sessions/session-service";
-import {
-  revokeAccessTokensForSession,
-  revokeRefreshTokensForSession,
-} from "@/lib/tokens/token-service";
+import { refreshSessionExpiry, revokeSession } from "@/lib/sessions/session-service";
+import { loginWithAppleProfile, verifyAppleIdToken } from "@/lib/auth/apple";
 import type {
   loginSchema,
+  mobileAppleSchema,
   mobileGoogleSchema,
   mobileRefreshSchema,
   registerSchema,
 } from "@/lib/validation/schemas";
 import { RefreshToken } from "@/models/RefreshToken";
-import { Session } from "@/models/Session";
 import { User } from "@/models/User";
+import { recordEvent } from "@/lib/audit/event-log";
 import type { z } from "zod";
 
 type Meta = { ipAddress?: string | null; userAgent?: string | null };
@@ -115,6 +113,28 @@ export async function mobileLoginWithGoogle(
   });
 }
 
+export async function mobileLoginWithApple(
+  input: z.infer<typeof mobileAppleSchema>,
+  meta: Meta,
+): Promise<MobileTokenResponse> {
+  const client = await requirePublicMobileClient(input.client_id);
+  const scope = resolveMobileScope(client, input.scope);
+  const profile = await verifyAppleIdToken({
+    idToken: input.id_token,
+    nonce: input.apple_nonce,
+    native: true,
+    name: { firstName: input.first_name, lastName: input.last_name },
+  });
+  const result = await loginWithAppleProfile(profile, { ...meta, mobileMfa: { clientId: client.clientId, scope, nonce: input.nonce } });
+  return mintMobileTokens({
+    clientId: client.clientId,
+    sessionToken: result.sessionToken,
+    scope,
+    user: result.user,
+    nonce: input.nonce,
+  });
+}
+
 export async function mobileRefreshTokens(
   input: z.infer<typeof mobileRefreshSchema>,
 ): Promise<MobileTokenResponse> {
@@ -174,9 +194,7 @@ export async function mobileLogout(input: {
     return;
   }
 
-  await revokeRefreshTokensForSession(existing.sessionId);
-  await revokeAccessTokensForSession(existing.sessionId);
-  await Session.findByIdAndUpdate(existing.sessionId, {
-    revokedAt: new Date(),
-  });
+  // Ends the session and its tokens, and tells the other apps it reached.
+  await revokeSession(existing.sessionId);
+  await recordEvent({ action: "auth.signed_out", subjectId: existing.userId, clientId: input.client_id });
 }

@@ -5,7 +5,7 @@ import { readJsonBody } from "@/lib/api/request";
 import { withDb } from "@/lib/api/with-db";
 import { jsonResponse } from "@/lib/security/headers";
 import { spacesUser } from "@/lib/spaces/http";
-import { deleteSpace, getSpaceForMember, renameSpace } from "@/lib/spaces/space-service";
+import { deleteSpace, getSpaceForMember, renameSpace, setSpaceMfaRequired } from "@/lib/spaces/space-service";
 import { notifySpaceChanged } from "@/lib/spaces/space-webhooks";
 
 type Params = { params: Promise<{ spaceId: string }> };
@@ -23,15 +23,19 @@ export async function GET(request: NextRequest, { params }: Params) {
   }
 }
 
-/** Rename (admins). */
+/** Rename, or require a second step of every member (admins). */
 export async function PATCH(request: NextRequest, { params }: Params) {
   try {
     return await withDb(async () => {
       const { userId } = await spacesUser(request, { change: true });
       const { spaceId } = await params;
-      const body = z.object({ name: z.string().trim().min(1).max(80) }).safeParse(await readJsonBody(request));
+      const body = z
+        .object({ name: z.string().trim().min(1).max(80).optional(), requireMfa: z.boolean().optional() })
+        .refine((value) => value.name !== undefined || value.requireMfa !== undefined)
+        .safeParse(await readJsonBody(request));
       if (!body.success) throw new AppError("Give the space a name (up to 80 characters)", 400, "invalid_request");
-      const space = await renameSpace(userId, spaceId, body.data.name);
+      let space = body.data.name !== undefined ? await renameSpace(userId, spaceId, body.data.name) : null;
+      if (body.data.requireMfa !== undefined) space = await setSpaceMfaRequired(userId, spaceId, body.data.requireMfa);
       after(() => notifySpaceChanged(spaceId));
       return jsonResponse({ space });
     });

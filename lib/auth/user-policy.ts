@@ -16,7 +16,10 @@ export function assertEmailVerified(user: { emailVerified?: boolean | null; stat
 }
 
 /** Development seed identities must never authenticate in a deployed production app. */
-export function isBlockedUser(user: { email: string; status: string }): boolean {
+export function isBlockedUser(user: { email: string; status: string; lockedAt?: Date | null; unlockAt?: Date | null }): boolean {
+  // A locked or frozen account (lib/security/account-lock.ts) can't sign in or use tokens until unlocked;
+  // a confirmed unfreeze counts once its wait is over.
+  if (user.lockedAt && !(user.unlockAt && user.unlockAt.getTime() <= Date.now())) return true;
   return user.status === "disabled" ||
     (process.env.NODE_ENV === "production" && user.email === "dev@noirly.test");
 }

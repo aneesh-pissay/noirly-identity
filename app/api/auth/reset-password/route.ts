@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { errorResponse } from "@/lib/api/errors";
-import { enforceRateLimit, readJsonBody } from "@/lib/api/request";
+import { enforceRateLimit, readJsonBody, requestMeta } from "@/lib/api/request";
 import { withDb } from "@/lib/api/with-db";
 import { resetUserPassword } from "@/lib/auth/auth-service";
 import { jsonResponse } from "@/lib/security/headers";
@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
           { status: 400 },
         );
       }
-      await resetUserPassword(parsed.data.token, parsed.data.newPassword);
+      await resetUserPassword(parsed.data.token, parsed.data.newPassword, requestMeta(request));
       return jsonResponse({ ok: true });
     });
   } catch (error) {

@@ -13,21 +13,25 @@ import {
   validateRequestedScopes,
 } from "@/lib/validation/schemas";
 import { AuthorizationCode } from "@/models/AuthorizationCode";
+import { parseResourceParam, resolveResources, splitScopes } from "@/lib/oauth/resources";
 
 export type AuthorizeParams = {
   client_id: string;
   redirect_uri: string;
   response_type: "code";
   scope: string;
-  state: string;
+  state?: string;
   code_challenge?: string;
   code_challenge_method?: "S256";
   nonce?: string;
   prompt?: "none" | "login" | "consent" | "select_account";
+  resource?: string;
 };
 
 export async function validateAuthorizeRequest(params: AuthorizeParams) {
   const client = await getActiveClient(params.client_id);
+  // A service account acts as itself only (client credentials); it never signs anyone in.
+  if (client.serviceAccountOf) throw new OAuthError("unauthorized_client", "Service accounts can't sign people in");
   assertExactRedirectUri(client, params.redirect_uri);
 
   requirePkceForClient({
@@ -37,16 +41,21 @@ export async function validateAuthorizeRequest(params: AuthorizeParams) {
     codeChallengeMethod: params.code_challenge_method,
   });
 
+  const resources = await resolveResources(client.clientId, parseResourceParam(params.resource));
   const requested = parseScopes(params.scope);
-  const scopeCheck = validateRequestedScopes(requested, client.allowedScopes);
+  // The APIs' own scopes are theirs to define; the rest are checked as before.
+  const { api, oidc } = splitScopes(requested, resources);
+  const scopeCheck = validateRequestedScopes(oidc, client.allowedScopes);
   if (!scopeCheck.ok) {
     throw new OAuthError("invalid_scope", scopeCheck.message);
   }
+  const scopes = [...scopeCheck.scopes, ...api];
 
   return {
     client,
-    scopes: scopeCheck.scopes,
-    scopeString: scopeCheck.scopes.join(" "),
+    scopes,
+    scopeString: scopes.join(" "),
+    resources: resources.map((r) => r.identifier),
   };
 }
 
@@ -58,7 +67,9 @@ export async function createAuthorizationCode(input: {
   codeChallenge?: string | null;
   codeChallengeMethod?: "S256" | null;
   nonce?: string | null;
-}): Promise<{ code: string }> {
+  resources?: string[];
+  organizationId?: string | null;
+}): Promise<{ code: string; userId: string }> {
   const auth = await requireAuthContext(input.sessionToken);
   assertEmailVerified(auth.user);
   const env = getEnv();
@@ -74,9 +85,12 @@ export async function createAuthorizationCode(input: {
     codeChallenge: input.codeChallenge ?? null,
     codeChallengeMethod: input.codeChallengeMethod ?? null,
     nonce: input.nonce ?? null,
-    authTime: auth.user.lastLoginAt ?? auth.session.createdAt,
+    authTime: auth.session.authenticatedAt,
+    methods: auth.session.methods,
+    resources: input.resources ?? [],
+    organizationId: input.organizationId ?? null,
     expiresAt: new Date(Date.now() + env.AUTH_CODE_TTL_SECONDS * 1000),
   });
 
-  return { code };
+  return { code, userId: String(auth.user._id) };
 }

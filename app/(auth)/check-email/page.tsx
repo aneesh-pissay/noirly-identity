@@ -30,6 +30,9 @@ function CheckEmailContent() {
   const [error, setError] = useState<string | null>(null);
   const [cooldown, setCooldown] = useState(0);
   const [sending, setSending] = useState(false);
+  const [code, setCode] = useState("");
+  const [verifying, setVerifying] = useState(false);
+  const [codeResult, setCodeResult] = useState<{ ok: boolean; text: string } | null>(null);
 
   const masked = useMemo(() => (email ? maskEmail(email) : null), [email]);
 
@@ -86,6 +89,29 @@ function CheckEmailContent() {
     }
   }
 
+  async function verifyCode(event: FormEvent) {
+    event.preventDefault();
+    setCodeResult(null);
+    if (!email) {
+      setCodeResult({ ok: false, text: "Enter the email address you registered with." });
+      return;
+    }
+    setVerifying(true);
+    try {
+      const res = await fetch("/api/auth/verify-email/code", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ email, code }),
+      });
+      const data = (await res.json()) as { message?: string };
+      setCodeResult({ ok: res.ok, text: res.ok ? "Your email address is verified. You can sign in now." : (data.message ?? "That code didn't work") });
+    } catch {
+      setCodeResult({ ok: false, text: "That code didn't work. Try again." });
+    } finally {
+      setVerifying(false);
+    }
+  }
+
   return (
     <AuthShell
       logo={<AuthLogo />}
@@ -130,6 +156,24 @@ function CheckEmailContent() {
         </form>
         {message ? <Notice tone="success">{message}</Notice> : null}
         {error ? <Notice tone="error">{error}</Notice> : null}
+        <p className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--muted-foreground)]">
+          Have the code instead?
+        </p>
+        <form className="flex flex-col gap-4" onSubmit={verifyCode}>
+          <FormField
+            label="Code from the email"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            placeholder="123 456"
+            maxLength={7}
+            value={code}
+            onChange={(event) => setCode(event.target.value)}
+          />
+          <SubmitButton type="submit" busy={verifying} busyLabel="Checking" disabled={code.replace(/\s+/g, "").length !== 6}>
+            Verify with code
+          </SubmitButton>
+        </form>
+        {codeResult ? <Notice tone={codeResult.ok ? "success" : "error"}>{codeResult.text}</Notice> : null}
       </div>
     </AuthShell>
   );

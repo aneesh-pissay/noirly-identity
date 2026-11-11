@@ -21,7 +21,8 @@ const DELIVERY_TIMEOUT_MS = 8000;
 
 export type DeletionWebhook = { clientId: string; url: string };
 
-export function parseDeletionWebhooks(raw: string | undefined, production: boolean): DeletionWebhook[] {
+/** `clientId=url` pairs, comma or newline separated; `setting` names the variable in errors. */
+export function parseDeletionWebhooks(raw: string | undefined, production: boolean, setting = "ACCOUNT_DELETION_WEBHOOKS"): DeletionWebhook[] {
   if (!raw?.trim()) return [];
   const hooks: DeletionWebhook[] = [];
   for (const entry of raw.split(/[\s,]+/)) {
@@ -30,16 +31,16 @@ export function parseDeletionWebhooks(raw: string | undefined, production: boole
     const clientId = entry.slice(0, at).trim();
     const url = entry.slice(at + 1).trim();
     if (at <= 0 || !clientId || !url) {
-      throw new Error(`ACCOUNT_DELETION_WEBHOOKS: expected clientId=url, got "${entry}"`);
+      throw new Error(`${setting}: expected clientId=url, got "${entry}"`);
     }
     let parsed: URL;
     try {
       parsed = new URL(url);
     } catch {
-      throw new Error(`ACCOUNT_DELETION_WEBHOOKS: invalid URL for ${clientId}`);
+      throw new Error(`${setting}: invalid URL for ${clientId}`);
     }
     if (parsed.protocol !== "https:" && (production || parsed.protocol !== "http:")) {
-      throw new Error(`ACCOUNT_DELETION_WEBHOOKS: ${clientId} must use https`);
+      throw new Error(`${setting}: ${clientId} must use https`);
     }
     hooks.push({ clientId, url: parsed.toString() });
   }
@@ -65,6 +66,9 @@ export async function signDeletionEvent(sub: string, clientId: string): Promise<
     .setJti(randomUUID())
     .sign(keys.privateKey);
 }
+
+export const DELETION_RECORD_DAYS = 90;
+const keepUntil = () => new Date(Date.now() + DELETION_RECORD_DAYS * 86_400_000);
 
 async function deliver(hook: DeletionWebhook, sub: string): Promise<string | null> {
   try {
@@ -97,42 +101,51 @@ export async function notifyAccountDeleted(sub: string): Promise<{ delivered: st
   }
   const results = await Promise.all(hooks.map(async (hook) => ({ hook, error: await deliver(hook, sub) })));
   const pending = results.filter((r) => r.error !== null);
-  if (pending.length > 0) {
-    await DeletedAccount.updateOne(
-      { sub },
-      {
-        $set: {
-          deletedAt: new Date(),
-          pending: pending.map((r) => ({ clientId: r.hook.clientId, attempts: 1, lastError: r.error })),
-        },
+  const now = new Date();
+  await DeletedAccount.updateOne(
+    { sub },
+    {
+      $set: {
+        deletedAt: now,
+        keepUntil: keepUntil(),
+        pending: pending.map((r) => ({ clientId: r.hook.clientId, attempts: 1, lastError: r.error })),
+        delivered: results.filter((r) => r.error === null).map((r) => ({ clientId: r.hook.clientId, at: now })),
+        failed: [],
       },
-      { upsert: true },
-    );
-  }
+    },
+    { upsert: true },
+  ).catch(() => undefined);
   return {
     delivered: results.filter((r) => r.error === null).map((r) => r.hook.clientId),
     pending: pending.map((r) => r.hook.clientId),
   };
 }
 
+/** Retries one tombstone's pending notices (and, with `includeFailed`, the ones given up on). Returns how many still wait. */
+export async function retryDeletionRecord(record: DeletedAccountDocument, maxAttempts = 20, includeFailed = false): Promise<number> {
+  const hooks = new Map(configuredWebhooks().map((h) => [h.clientId, h]));
+  const next: DeletedAccountDocument["pending"] = [];
+  const failed: DeletedAccountDocument["failed"] = includeFailed ? [] : [...(record.failed ?? [])];
+  const delivered = [...(record.delivered ?? [])];
+  const items = [...record.pending, ...(includeFailed ? (record.failed ?? []).map((f) => ({ ...f, attempts: 0 })) : [])];
+  for (const item of items) {
+    const hook = hooks.get(item.clientId);
+    // An app removed from the config no longer wants notices.
+    if (!hook) continue;
+    const error = await deliver(hook, record.sub);
+    if (error === null) delivered.push({ clientId: item.clientId, at: new Date() });
+    else if (item.attempts + 1 < maxAttempts) next.push({ clientId: item.clientId, attempts: item.attempts + 1, lastError: error });
+    else failed.push({ clientId: item.clientId, attempts: item.attempts + 1, lastError: error });
+  }
+  await DeletedAccount.updateOne({ _id: record._id }, { $set: { pending: next, delivered, failed } });
+  return next.length;
+}
+
 /** Re-sends notices that failed earlier. Returns how many are still pending. */
 export async function retryPendingDeletionNotices(maxAttempts = 20): Promise<number> {
-  const hooks = new Map(configuredWebhooks().map((h) => [h.clientId, h]));
   let stillPending = 0;
-  for (const record of await DeletedAccount.find({ "pending.0": { $exists: true } })) {
-    const next: DeletedAccountDocument["pending"] = [];
-    for (const item of record.pending) {
-      const hook = hooks.get(item.clientId);
-      // An app removed from the config no longer wants notices.
-      if (!hook) continue;
-      const error = await deliver(hook, record.sub);
-      if (error !== null && item.attempts + 1 < maxAttempts) {
-        next.push({ clientId: item.clientId, attempts: item.attempts + 1, lastError: error });
-      }
-    }
-    stillPending += next.length;
-    if (next.length === 0) await DeletedAccount.deleteOne({ _id: record._id });
-    else await DeletedAccount.updateOne({ _id: record._id }, { $set: { pending: next } });
+  for (const record of await DeletedAccount.find({ "pending.0": { $exists: true } }).lean<DeletedAccountDocument[]>()) {
+    stillPending += await retryDeletionRecord(record, maxAttempts);
   }
   return stillPending;
 }

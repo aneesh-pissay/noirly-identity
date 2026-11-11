@@ -11,13 +11,15 @@ const linkedAccountSchema = new Schema(
     provider: {
       type: String,
       required: true,
-      enum: ["google"],
+      enum: ["google", "apple", "microsoft", "github"],
       index: true,
     },
     providerAccountId: {
       type: String,
       required: true,
     },
+    // The provider's address for it when linked, so settings can say which account it is.
+    email: { type: String, default: null },
   },
   {
     timestamps: { createdAt: true, updatedAt: false },

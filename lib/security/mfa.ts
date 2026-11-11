@@ -1,39 +1,59 @@
-import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
+import { randomBytes, randomInt } from "node:crypto";
 import { generateSecret, verify, generateURI } from "otplib";
 import { AppError } from "@/lib/api/errors";
 import { getEnv } from "@/lib/config/env";
+import { openSecret, sealSecret } from "@/lib/security/encryption";
+import type { Risk } from "@/lib/security/risk";
+import { User } from "@/models/User";
+import { sendEmail } from "@/lib/email/email-service";
+import { buildNoticeEmail, buildRecoveryCodesLowEmail } from "@/lib/email/templates";
 import { generateSecureToken, hashToken } from "@/lib/security/crypto";
 import { consumeRateLimit } from "@/lib/security/shared-rate-limit";
 import { Mfa, Passkey, SecurityChallenge } from "@/models/SecurityCredential";
+import type { SignInMethod } from "@/lib/audit/chain";
 
 export const MFA_COOKIE = "noirly_mfa_challenge";
 export type MobileMfaContext = { clientId: string; scope: string; nonce?: string };
 
-function encryptionKey() { return createHash("sha256").update(getEnv().ENCRYPTION_KEY).digest(); }
-function encrypt(secret: string): string {
-  const iv = randomBytes(12);
-  const cipher = createCipheriv("aes-256-gcm", encryptionKey(), iv);
-  const body = Buffer.concat([cipher.update(secret, "utf8"), cipher.final()]);
-  return Buffer.concat([iv, cipher.getAuthTag(), body]).toString("base64url");
-}
-function decrypt(value: string): string {
-  const data = Buffer.from(value, "base64url");
-  const decipher = createDecipheriv("aes-256-gcm", encryptionKey(), data.subarray(0, 12));
-  decipher.setAuthTag(data.subarray(12, 28));
-  return Buffer.concat([decipher.update(data.subarray(28)), decipher.final()]).toString("utf8");
-}
+const encrypt = (secret: string) => sealSecret(secret);
+const decrypt = (value: string) => openSecret(value);
 
-export async function newChallenge(input: { userId?: string; purpose: string; challenge?: string; sessionId?: string } & Partial<MobileMfaContext>) {
+export async function newChallenge(input: { userId?: string; purpose: string; challenge?: string; sessionId?: string; method?: SignInMethod; stepUpSessionId?: string; priorMethods?: string[] } & Partial<MobileMfaContext>) {
   const token = generateSecureToken();
   await SecurityChallenge.create({ ...input, tokenHash: hashToken(token), expiresAt: new Date(Date.now() + 5 * 60_000) });
   return token;
 }
 
 /** Called after the primary factor and before issuing any session or tokens. */
-export async function requireSecondFactor(userId: string, mobile?: MobileMfaContext): Promise<void> {
+/**
+ * A second step at sign-in: always when the account has one; and, when it has
+ * none but the sign-in looks risky (lib/security/risk.ts), a code emailed to
+ * its address (adaptive MFA).
+ */
+export async function requireSecondFactor(userId: string, mobile?: MobileMfaContext, method?: SignInMethod, risk?: Risk): Promise<void> {
   const [mfa, passkey] = await Promise.all([Mfa.findOne({ userId, enabled: true }).lean(), Passkey.exists({ userId })]);
-  if (!mfa && !passkey) return;
-  const challenge = await newChallenge({ userId, purpose: "login-mfa", ...mobile });
+  if (!mfa && !passkey) {
+    if (risk?.level !== "high") return;
+    const code = String(randomInt(0, 1_000_000)).padStart(6, "0");
+    const challenge = await newChallenge({ userId, purpose: "login-mfa", method, ...mobile });
+    await SecurityChallenge.updateOne({ tokenHash: hashToken(challenge) }, { $set: { emailCodeHash: hashToken(`email-code:${code}`) } });
+    const user = await User.findById(userId).select("email").lean();
+    if (user) {
+      await sendEmail({
+        to: user.email,
+        ...buildNoticeEmail({
+          subject: `Your Noirly sign-in code: ${code}`,
+          paragraphs: [
+            `Someone is signing in to your account from somewhere new. If it's you, enter this code: ${code}`,
+            "It works for 5 minutes. If it isn't you, don't share it: change your password.",
+          ],
+        }),
+        meta: { kind: "risk-code" },
+      });
+    }
+    throw new AppError("We emailed you a code to confirm it's you", 401, "mfa_required", { challenge, mobile: Boolean(mobile) });
+  }
+  const challenge = await newChallenge({ userId, purpose: "login-mfa", method, ...mobile });
   throw new AppError("Complete verification to sign in", 401, "mfa_required", { challenge, mobile: Boolean(mobile) });
 }
 
@@ -60,21 +80,48 @@ export async function confirmTotp(userId: string, code: string) {
   const epoch = Math.floor(Date.now() / 1000);
   const result = await verify({ strategy: "totp", secret: decrypt(record.pendingSecret), token: code, epochTolerance: 30, epoch });
   if (!result.valid) throw new AppError("Invalid authenticator code", 400, "invalid_code");
-  const codes = Array.from({ length: 10 }, () => randomBytes(10).toString("hex"));
+  const codes = newRecoveryCodes();
   const updated = await Mfa.updateOne({ _id: record._id, enabled: false, pendingSecret: record.pendingSecret }, { $set: {
     enabled: true, secret: record.pendingSecret, pendingSecret: null, pendingExpiresAt: null,
-    lastStep: Math.floor(epoch / 30) + result.delta, recoveryHashes: codes.map(hashToken),
+    lastStep: Math.floor(epoch / 30) + result.delta, recoveryHashes: codes.map(hashToken), enabledAt: new Date(),
   } });
   if (!updated.modifiedCount) throw new AppError("Enrollment changed. Start again.", 409, "invalid_enrollment");
   return codes;
 }
 
-export async function verifyTotpOrRecovery(userId: string, code: string) {
+/** Checks an authenticator or recovery code and says which it was. */
+/** How many recovery codes a set has, and how few left prompts a reminder to replace them. */
+export const RECOVERY_CODE_COUNT = 10;
+export const RECOVERY_CODES_LOW = 3;
+
+function newRecoveryCodes(): string[] {
+  return Array.from({ length: RECOVERY_CODE_COUNT }, () => randomBytes(10).toString("hex"));
+}
+
+/** Emails a reminder to make new recovery codes; never fails the sign-in that prompted it. */
+export async function remindRecoveryCodesLow(email: string, remaining: number) {
+  try {
+    const message = buildRecoveryCodesLowEmail({ remaining, accountUrl: `${getEnv().APP_URL}/account#security-title` });
+    await sendEmail({ to: email, subject: message.subject, text: message.text, html: message.html, meta: { kind: "recovery_codes_low" } });
+  } catch (error) {
+    console.error("Recovery code reminder not sent:", error instanceof Error ? error.message : error);
+  }
+}
+
+/** A fresh set of recovery codes; every code from the old set stops working at once. */
+export async function replaceRecoveryCodes(userId: string): Promise<string[]> {
+  const codes = newRecoveryCodes();
+  const updated = await Mfa.updateOne({ userId, enabled: true }, { $set: { recoveryHashes: codes.map(hashToken) } });
+  if (updated.matchedCount !== 1) throw new AppError("Set up an authenticator app first: recovery codes come with it.", 400, "totp_not_enabled");
+  return codes;
+}
+
+export async function verifyTotpOrRecovery(userId: string, code: string): Promise<"totp" | "recovery_code"> {
   await checkFactorRate(userId);
   if (/^[a-f0-9]{20}$/i.test(code)) {
     const hash = hashToken(code.toLowerCase());
-    const result = await Mfa.updateOne({ userId, enabled: true, recoveryHashes: hash }, { $pull: { recoveryHashes: hash } });
-    if (result.modifiedCount === 1) return;
+    const result = await Mfa.updateOne({ userId, enabled: true, recoveryHashes: hash }, { $pull: { recoveryHashes: hash }, $set: { lastUsedAt: new Date() } });
+    if (result.modifiedCount === 1) return "recovery_code";
   } else if (/^\d{6}$/.test(code)) {
     const record = await Mfa.findOne({ userId, enabled: true }).lean();
     if (record?.secret) {
@@ -82,8 +129,8 @@ export async function verifyTotpOrRecovery(userId: string, code: string) {
       const result = await verify({ strategy: "totp", secret: decrypt(record.secret), token: code, epochTolerance: 30, epoch });
       if (result.valid) {
         const step = Math.floor(epoch / 30) + result.delta;
-        const used = await Mfa.updateOne({ _id: record._id, enabled: true, lastStep: { $lt: step } }, { $set: { lastStep: step } });
-        if (used.modifiedCount === 1) return;
+        const used = await Mfa.updateOne({ _id: record._id, enabled: true, lastStep: { $lt: step } }, { $set: { lastStep: step, lastUsedAt: new Date() } });
+        if (used.modifiedCount === 1) return "totp";
       }
     }
   }

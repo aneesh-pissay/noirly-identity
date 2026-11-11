@@ -1,6 +1,13 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
+import { SpaceDomains } from "@/components/spaces/SpaceDomains";
+import { SpaceTeams } from "@/components/spaces/SpaceTeams";
+import { SpaceApps } from "@/components/spaces/SpaceApps";
+import { SpaceSecurity } from "@/components/spaces/SpaceSecurity";
+import { SpaceSso } from "@/components/spaces/SpaceSso";
+import { SpaceDirectory } from "@/components/spaces/SpaceDirectory";
+import { SpaceAccess } from "@/components/spaces/SpaceAccess";
 import { AuthShell, Button } from "@noirly-dev/ui";
 import { AuthLogo } from "@/components/AuthLogo";
 import { FormField, Notice, SubmitButton, TextLink } from "@/components/auth-ui";
@@ -38,6 +45,16 @@ export function SpacesManager({ userId, initialSpaces }: Props) {
   const [addEmail, setAddEmail] = useState("");
   const [addRole, setAddRole] = useState<SpaceRole>("member");
   const [rename, setRename] = useState("");
+  const [invitations, setInvitations] = useState<Array<{ id: string; email: string; role: SpaceRole; expiresAt: string }>>([]);
+
+  const loadInvitations = useCallback(async (spaceId: string) => {
+    try {
+      setInvitations((await call<{ invitations: Array<{ id: string; email: string; role: SpaceRole; expiresAt: string }> }>(`/api/spaces/${spaceId}/invitations`, "GET")).invitations);
+    } catch {
+      // Members can't see invitations; nothing to show.
+      setInvitations([]);
+    }
+  }, []);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -51,7 +68,9 @@ export function SpacesManager({ userId, initialSpaces }: Props) {
     const { space } = await call<{ space: SpaceDetail & { role: SpaceRole } }>(`/api/spaces/${spaceId}`, "GET");
     setSelected(space);
     setRename(space.name);
-  }, []);
+    if (space.role !== "member") void loadInvitations(space.id);
+    else setInvitations([]);
+  }, [loadInvitations]);
 
   useEffect(() => {
     if (!selected && spaces.length === 1) void open(spaces[0]!.id).catch(() => undefined);
@@ -203,6 +222,46 @@ export function SpacesManager({ userId, initialSpaces }: Props) {
                           Remove
                         </Button>
                       ) : null}
+                      {isOwner && member.userId !== userId && member.role !== "owner" ? (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          disabled={busy}
+                          onClick={() => {
+                            if (!window.confirm(`Hand ${selected.name} over to ${member.displayName}? They become an owner and you become an admin.`)) return;
+                            void run(async () => {
+                              const { space } = await call<{ space: SpaceDetail }>(`/api/spaces/${selected.id}/transfer`, "POST", { userId: member.userId });
+                              setSelected({ ...space, role: "admin" });
+                              await refreshList();
+                            }, `${member.displayName} now owns the space.`);
+                          }}
+                        >
+                          Hand over
+                        </Button>
+                      ) : null}
+                      {isOwner && member.role === "admin" ? (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          disabled={busy}
+                          onClick={() => {
+                            const answer = window.prompt(
+                              `What may ${member.displayName} manage? Any of: members, settings, domains, apps (comma separated). Leave empty for everything admins can.`,
+                              member.adminAreas?.join(", ") ?? "",
+                            );
+                            if (answer === null) return;
+                            const areas = answer.split(/[\s,]+/).filter(Boolean);
+                            void run(async () => {
+                              const { space } = await call<{ space: SpaceDetail }>(`/api/spaces/${selected.id}/members/${member.userId}`, "PATCH", { adminAreas: areas.length ? areas : null });
+                              setSelected({ ...space, role: selected.role });
+                            }, "Saved.");
+                          }}
+                        >
+                          {member.adminAreas ? `Areas: ${member.adminAreas.join(", ") || "none"}` : "Areas: all"}
+                        </Button>
+                      ) : null}
                     </span>
                   </li>
                 );
@@ -216,17 +275,14 @@ export function SpacesManager({ userId, initialSpaces }: Props) {
                   event.preventDefault();
                   if (!addEmail.trim()) return;
                   void run(async () => {
-                    const { space } = await call<{ space: SpaceDetail }>(
-                      `/api/spaces/${selected.id}/members`, "POST", { email: addEmail.trim(), role: addRole },
-                    );
-                    setSelected({ ...space, role: selected.role });
+                    await call(`/api/spaces/${selected.id}/members`, "POST", { email: addEmail.trim(), role: addRole });
                     setAddEmail("");
-                    await refreshList();
-                  }, "Added. They now have access in every linked app.");
+                    await loadInvitations(selected.id);
+                  }, "Invitation sent. They join when they open the link, signed in with that address.");
                 }}
               >
                 <FormField
-                  label="Add someone by their Noirly email"
+                  label="Invite someone by email"
                   name="member-email"
                   type="email"
                   value={addEmail}
@@ -243,8 +299,29 @@ export function SpacesManager({ userId, initialSpaces }: Props) {
                     <option key={role} value={role}>{ROLE_LABEL[role]}</option>
                   ))}
                 </select>
-                <SubmitButton busy={busy} disabled={!addEmail.trim()}>Add</SubmitButton>
+                <SubmitButton busy={busy} disabled={!addEmail.trim()}>Invite</SubmitButton>
               </form>
+            ) : null}
+
+            {canManage && invitations.length ? (
+              <ul aria-label="Pending invitations" className="divide-y divide-[var(--hairline)] rounded-xl border border-[var(--hairline)]">
+                {invitations.map((invite) => (
+                  <li key={invite.id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-sm">
+                    <span>{invite.email} · {ROLE_LABEL[invite.role]} · until {new Date(invite.expiresAt).toLocaleDateString()}</span>
+                    <button
+                      type="button"
+                      className="text-xs underline"
+                      disabled={busy}
+                      onClick={() => void run(async () => {
+                        await call(`/api/spaces/${selected.id}/invitations/${invite.id}`, "DELETE");
+                        await loadInvitations(selected.id);
+                      }, "Invitation withdrawn.")}
+                    >
+                      Withdraw<span className="sr-only"> the invitation to {invite.email}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
             ) : null}
 
             {canManage ? (
@@ -270,6 +347,39 @@ export function SpacesManager({ userId, initialSpaces }: Props) {
                 <SubmitButton busy={busy} disabled={!rename.trim() || rename.trim() === selected.name}>Rename</SubmitButton>
               </form>
             ) : null}
+
+            {canManage ? (
+              <label className="flex items-start gap-3 text-sm">
+                <input
+                  type="checkbox"
+                  className="mt-1"
+                  checked={selected.requireMfa}
+                  disabled={busy}
+                  onChange={(event) => {
+                    const requireMfa = event.target.checked;
+                    void run(async () => {
+                      const { space } = await call<{ space: SpaceDetail }>(`/api/spaces/${selected.id}`, "PATCH", { requireMfa });
+                      setSelected({ ...space, role: selected.role });
+                      await refreshList();
+                    }, requireMfa ? "Members now need a second step at sign-in." : "A second step is no longer required here.");
+                  }}
+                />
+                <span>
+                  Require a second step at sign-in for every member
+                  <span className="block text-xs text-[var(--muted-foreground)]">An authenticator app, passkey or security key. Members who don&apos;t have one yet are asked to set one up.</span>
+                </span>
+              </label>
+            ) : selected.requireMfa ? (
+              <p className="text-xs text-[var(--muted-foreground)]">This space requires a second step at sign-in for every member.</p>
+            ) : null}
+
+            <SpaceDomains key={`domains-${selected.id}`} spaceId={selected.id} isOwner={isOwner} />
+            <SpaceSso key={`sso-${selected.id}`} spaceId={selected.id} isOwner={isOwner} />
+            {canManage ? <SpaceDirectory key={`directory-${selected.id}`} spaceId={selected.id} /> : null}
+            <SpaceTeams key={`teams-${selected.id}`} spaceId={selected.id} members={selected.members} canManage={canManage} />
+            <SpaceApps key={`apps-${selected.id}`} spaceId={selected.id} canManage={canManage} />
+            <SpaceSecurity key={`security-${selected.id}`} spaceId={selected.id} canManage={canManage} />
+            <SpaceAccess key={`access-${selected.id}`} spaceId={selected.id} members={selected.members} canManage={canManage} />
 
             <div className="flex flex-wrap gap-2">
               <Button

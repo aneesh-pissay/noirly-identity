@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { errorResponse } from "@/lib/api/errors";
-import { enforceCsrfForCookieAuth, enforceRateLimit, readJsonBody } from "@/lib/api/request";
+import { enforceCsrfForCookieAuth, enforceRateLimit, readJsonBody, requestMeta } from "@/lib/api/request";
 import { withDb } from "@/lib/api/with-db";
 import { changeUserPassword } from "@/lib/auth/auth-service";
 import { getSessionTokenFromCookies } from "@/lib/security/cookies";
@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
           { status: 400 },
         );
       }
-      await changeUserPassword(token, parsed.data);
+      await changeUserPassword(token, parsed.data, requestMeta(request));
       return jsonResponse({ ok: true });
     });
   } catch (error) {

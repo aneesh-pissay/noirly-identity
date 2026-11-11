@@ -11,7 +11,7 @@ function statusPayload(status: string) {
     case "verified":
       return {
         status: "verified",
-        message: "Your Noirly account has been successfully verified.",
+        message: "Your email address has been verified.",
       };
     case "already_verified":
       return {
@@ -22,6 +22,11 @@ function statusPayload(status: string) {
       return {
         status: "expired",
         message: "This verification link has expired.",
+      };
+    case "taken":
+      return {
+        status: "invalid",
+        message: "This address was confirmed on another account first, so it can't be added.",
       };
     case "used":
       return {

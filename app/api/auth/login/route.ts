@@ -1,11 +1,10 @@
 import { NextRequest } from "next/server";
 import { errorResponse } from "@/lib/api/errors";
-import { enforceCsrfForCookieAuth, enforceRateLimit, readJsonBody } from "@/lib/api/request";
+import { enforceCsrfForCookieAuth, enforceRateLimit, readJsonBody, requestMeta } from "@/lib/api/request";
 import { withDb } from "@/lib/api/with-db";
 import { loginUser } from "@/lib/auth/auth-service";
 import { ensureCsrfCookie, setSessionCookie } from "@/lib/security/cookies";
 import { jsonResponse } from "@/lib/security/headers";
-import { getClientIp } from "@/lib/security/rate-limit";
 import { loginSchema } from "@/lib/validation/schemas";
 
 export async function POST(request: NextRequest) {
@@ -26,7 +25,7 @@ export async function POST(request: NextRequest) {
       }
 
       const result = await loginUser(parsed.data, {
-        ipAddress: getClientIp(request),
+        ...requestMeta(request),
         userAgent: request.headers.get("user-agent"),
       });
 

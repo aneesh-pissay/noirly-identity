@@ -3,6 +3,7 @@ import { requireSecondFactor, type MobileMfaContext } from "@/lib/security/mfa";
 import { consumeRateLimit } from "@/lib/security/shared-rate-limit";
 import { AppError } from "@/lib/api/errors";
 import {
+  addressTaken,
   issueEmailVerification,
   issuePasswordReset,
   consumePasswordResetToken,
@@ -25,6 +26,10 @@ import {
   validateSession,
 } from "@/lib/sessions/session-service";
 import { User } from "@/models/User";
+import { Avatar } from "@/models/Avatar";
+import { accessibilityOf } from "@/lib/account/preferences";
+import { frontchannelLogoutUrls } from "@/lib/oidc/backchannel-logout";
+import { recordEvent, type RequestMeta } from "@/lib/audit/event-log";
 import type { PublicUser } from "@/types";
 import type {
   changePasswordSchema,
@@ -33,6 +38,12 @@ import type {
   updateProfileSchema,
 } from "@/lib/validation/schemas";
 import type { z } from "zod";
+import { assertNotBreached, breachCount } from "@/lib/security/breached-passwords";
+import { checkSignupAllowed } from "@/lib/security/signup-protection";
+import { assessSignInRisk } from "@/lib/security/risk";
+import { afterResponse } from "@/lib/api/after";
+import { sendEmail } from "@/lib/email/email-service";
+import { buildNoticeEmail } from "@/lib/email/templates";
 
 type RegisterInput = z.infer<typeof registerSchema>;
 type LoginInput = z.infer<typeof loginSchema>;
@@ -41,14 +52,17 @@ type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
 
 export async function registerUser(
   input: RegisterInput,
-  meta: { ipAddress?: string | null; userAgent?: string | null; mobileMfa?: MobileMfaContext },
+  meta: { ipAddress?: string | null; userAgent?: string | null; place?: string | null; deviceId?: string | null; mobileMfa?: MobileMfaContext },
 ): Promise<{ user: PublicUser; sessionToken: string }> {
   const email = normalizeEmail(input.email);
-  const existing = await User.findOne({ email });
-  if (existing) {
+  // Throwaway inboxes and many accounts from one place (lib/security/signup-protection.ts).
+  await checkSignupAllowed(email, meta);
+  // An address confirmed on another account is that account's, even if not its primary.
+  if (await addressTaken(email)) {
     throw new AppError("Unable to create account", 409, "registration_failed");
   }
 
+  await assertNotBreached(input.password);
   const passwordHash = await hashPassword(input.password);
   const displayName =
     input.displayName?.trim() ||
@@ -72,17 +86,22 @@ export async function registerUser(
     userId: user._id,
     ipAddress: meta.ipAddress,
     userAgent: meta.userAgent,
+    place: meta.place,
+    methods: ["password"],
   });
+  await recordEvent({ action: "account.registered", subjectId: user._id, clientId: meta.mobileMfa?.clientId, request: meta, data: { method: "password" } });
 
   return { user: toPublicUser(user), sessionToken: token };
 }
 
 export async function loginUser(
   input: LoginInput,
-  meta: { ipAddress?: string | null; userAgent?: string | null; mobileMfa?: MobileMfaContext },
+  meta: { ipAddress?: string | null; userAgent?: string | null; place?: string | null; deviceId?: string | null; mobileMfa?: MobileMfaContext },
 ): Promise<{ user: PublicUser; sessionToken: string }> {
   const env = getEnv();
   const email = normalizeEmail(input.email);
+  // Credential stuffing tries many accounts from one device or address: limit those too, whichever account is tried.
+  await enforceAcrossAccounts(meta);
   if (env.NODE_ENV === "production" && email === "dev@noirly.test") throw new AppError("Invalid email or password", 401, "invalid_credentials");
   const attemptKey = `${meta.ipAddress ?? "unknown"}:${email}`;
   const accountLimit = await consumeRateLimit(`login-account:${email}`, env.LOGIN_MAX_ATTEMPTS, env.LOGIN_WINDOW_SECONDS);
@@ -108,6 +127,8 @@ export async function loginUser(
     (await verifyPassword(user.passwordHash, input.password));
 
   if (!user || !valid) {
+    // Only for accounts that exist: a guess at an address nobody has isn't anyone's history.
+    if (user) await recordEvent({ action: "auth.sign_in_failed", subjectId: user._id, actorId: null, clientId: meta.mobileMfa?.clientId, request: meta, data: { method: "password", reason: "wrong_password" } });
     const failed = recordFailedLogin(
       attemptKey,
       env.LOGIN_MAX_ATTEMPTS,
@@ -136,25 +157,38 @@ export async function loginUser(
 
   clearLoginAttempts(attemptKey);
 
-  await requireSecondFactor(user._id.toString(), meta.mobileMfa);
+  // A risky sign-in asks for a second step even when it's optional (lib/security/risk.ts).
+  const risk = await assessSignInRisk(user._id, meta);
+  await requireSecondFactor(user._id.toString(), meta.mobileMfa, "password", risk);
 
   user.lastLoginAt = new Date();
   await user.save();
+  // Is the password they just used known from breaches? Checked after the response; they're told by email.
+  const usedPassword = input.password;
+  afterResponse(() => flagIfBreached(String(user._id), usedPassword));
 
   const { token } = await createSession({
     userId: user._id,
     ipAddress: meta.ipAddress,
     userAgent: meta.userAgent,
+    place: meta.place,
+    deviceId: meta.deviceId,
+    methods: ["password"],
   });
+  await recordEvent({ action: "auth.signed_in", subjectId: user._id, clientId: meta.mobileMfa?.clientId, request: meta, data: { methods: ["password"] } });
 
   return { user: toPublicUser(user), sessionToken: token };
 }
 
-export async function logoutCurrentSession(sessionToken: string | null): Promise<void> {
+/** Signs this browser out; returns the front-channel logout URLs for apps the back-channel didn't reach. */
+export async function logoutCurrentSession(sessionToken: string | null, meta: RequestMeta = {}): Promise<{ frontchannelLogoutUrls: string[] }> {
   if (!sessionToken) {
-    return;
+    return { frontchannelLogoutUrls: [] };
   }
-  await revokeSessionByToken(sessionToken);
+  const ctx = await validateSession(sessionToken);
+  const ended = await revokeSessionByToken(sessionToken);
+  if (ctx) await recordEvent({ action: "auth.signed_out", subjectId: ctx.userId, request: meta });
+  return { frontchannelLogoutUrls: ended.session ? await frontchannelLogoutUrls(ended.session, ended.backchannelFailed) : [] };
 }
 
 export async function getCurrentUser(
@@ -187,6 +221,7 @@ export async function requireAdminUser(
 export async function updateUserProfile(
   sessionToken: string | null,
   input: UpdateProfileInput,
+  meta: RequestMeta = {},
 ): Promise<PublicUser> {
   const ctx = await validateSession(sessionToken);
   if (!ctx) {
@@ -201,16 +236,39 @@ export async function updateUserProfile(
   if (input.firstName !== undefined) user.firstName = input.firstName;
   if (input.lastName !== undefined) user.lastName = input.lastName;
   if (input.displayName !== undefined) user.displayName = input.displayName;
-  if (input.avatarUrl !== undefined) user.avatarUrl = input.avatarUrl;
-  if (input.phoneNumber !== undefined) user.phoneNumber = input.phoneNumber;
+  if (input.avatarUrl === null) {
+    user.avatarUrl = null;
+    // An uploaded photo stops being served too.
+    await Avatar.deleteOne({ userId: user._id });
+  }
+  if (input.phoneNumber !== undefined && input.phoneNumber !== user.phoneNumber) {
+    user.phoneNumber = input.phoneNumber;
+    // A number typed in here hasn't been proved; verifying it again is lib/account/phone.ts.
+    user.phoneVerifiedAt = null;
+  }
+  if (input.locale !== undefined) user.locale = input.locale;
+  if (input.zoneinfo !== undefined) user.zoneinfo = input.zoneinfo;
+  if (input.accessibility) {
+    const next = { ...accessibilityOf(user.accessibility), ...input.accessibility };
+    const current = accessibilityOf(user.accessibility);
+    if (next.motion !== current.motion || next.contrast !== current.contrast || next.textSize !== current.textSize) user.set("accessibility", next);
+  }
 
+  // Which fields changed, not what they changed to: the log isn't a copy of the profile.
+  const fields = user.modifiedPaths().filter((path) => ["firstName", "lastName", "displayName", "avatarUrl", "phoneNumber", "locale", "zoneinfo", "accessibility"].includes(path));
   await user.save();
+  if (fields.length) {
+    await recordEvent({ action: "account.profile_updated", subjectId: user._id, request: meta, data: { fields } });
+    const { emitLifecycle } = await import("@/lib/webhooks/lifecycle");
+    await emitLifecycle("user.updated", { userId: String(user._id), data: { fields } });
+  }
   return toPublicUser(user);
 }
 
 export async function changeUserPassword(
   sessionToken: string | null,
   input: ChangePasswordInput,
+  meta: RequestMeta = {},
 ): Promise<void> {
   const ctx = await validateSession(sessionToken);
   if (!ctx) {
@@ -229,9 +287,12 @@ export async function changeUserPassword(
     throw new AppError("Current password is incorrect", 400, "invalid_password");
   }
 
+  await assertNotBreached(input.newPassword);
   user.passwordHash = await hashPassword(input.newPassword);
+  user.passwordBreachedAt = null;
   await user.save();
   await revokeAllUserSessions(user._id, ctx.session._id);
+  await recordEvent({ action: "password.changed", subjectId: user._id, request: meta, data: { otherSessionsSignedOut: true } });
 }
 
 export async function requestPasswordReset(email: string): Promise<void> {
@@ -276,6 +337,7 @@ export async function resendEmailVerification(email: string): Promise<{
 export async function resetUserPassword(
   token: string,
   newPassword: string,
+  meta: RequestMeta = {},
 ): Promise<void> {
   const consumed = await consumePasswordResetToken(token);
   if (!consumed) {
@@ -287,9 +349,13 @@ export async function resetUserPassword(
     throw new AppError("Invalid or expired reset token", 400, "invalid_token");
   }
 
+  await assertNotBreached(newPassword);
   user.passwordHash = await hashPassword(newPassword);
+  user.passwordBreachedAt = null;
+  user.mustResetPassword = false;
   await user.save();
   await revokeAllUserSessions(user._id);
+  await recordEvent({ action: "password.reset", subjectId: user._id, actorId: null, request: meta, data: { allSessionsSignedOut: true } });
 }
 
 export async function confirmEmailVerification(
@@ -308,4 +374,39 @@ export async function requireAuthContext(sessionToken: string | null) {
     throw new AppError("Authentication required", 401, "unauthorized");
   }
   return { ...ctx, user };
+}
+
+/** A sign-in used a password known from breaches: flag the account and tell its owner. */
+export async function flagIfBreached(userId: string, password: string) {
+  if ((await breachCount(password)) === 0) return;
+  const user = await User.findOneAndUpdate({ _id: userId, passwordBreachedAt: null }, { $set: { passwordBreachedAt: new Date() } }).select("email").lean();
+  if (!user) return;
+  await recordEvent({ action: "password.breach_detected", subjectId: userId, actorId: null });
+  await sendEmail({
+    to: user.email,
+    ...buildNoticeEmail({
+      subject: "Change your Noirly password",
+      paragraphs: [
+        "The password you signed in with has appeared in a data breach somewhere else. Anyone with that list could try it on your Noirly account.",
+        "Change it now, and turn on a passkey or an authenticator app if you haven't.",
+      ],
+      action: { label: "Change your password", url: new URL("/account", getEnv().APP_URL).toString() },
+    }),
+    meta: { kind: "password-breached" },
+  });
+}
+
+/** Password attempts across accounts: per device (20 in 15 minutes) and per address (60 in 15 minutes, for shared networks). */
+export const DEVICE_ATTEMPTS = 20;
+export const ADDRESS_ATTEMPTS = 60;
+async function enforceAcrossAccounts(meta: { ipAddress?: string | null; deviceId?: string | null }) {
+  const checks = [
+    meta.deviceId ? consumeRateLimit(`login-device:${meta.deviceId}`, DEVICE_ATTEMPTS, 900) : null,
+    meta.ipAddress ? consumeRateLimit(`login-address:${meta.ipAddress}`, ADDRESS_ATTEMPTS, 900) : null,
+  ];
+  for (const result of await Promise.all(checks)) {
+    if (result && !result.allowed) {
+      throw new AppError("Too many sign-in attempts from here. Try again later.", 429, "rate_limited", { retryAfterSeconds: result.retryAfterSeconds });
+    }
+  }
 }

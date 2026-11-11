@@ -27,6 +27,22 @@ function ConsentForm() {
     void getCsrf().then(setCsrf);
   }, []);
 
+  // The app's name and what each scope means, from Identity (not the address bar).
+  const [described, setDescribed] = useState<{ app: string; canSee: string[] } | null>(null);
+  useEffect(() => {
+    const controller = new AbortController();
+    const query = new URLSearchParams();
+    for (const key of ["client_id", "redirect_uri", "scope", "resource"]) {
+      const value = params.get(key);
+      if (value) query.set(key, value);
+    }
+    void fetch(`/api/oauth/consent/describe?${query}`, { cache: "no-store", signal: controller.signal })
+      .then(async (res) => (res.ok ? ((await res.json()) as { app: string; canSee: string[] }) : null))
+      .then((data) => { if (data) setDescribed(data); })
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, [params]);
+
   async function decide(decision: "approve" | "deny") {
     setError(null);
     setBusy(decision);
@@ -42,10 +58,12 @@ function ConsentForm() {
           client_id: params.get("client_id"),
           redirect_uri: params.get("redirect_uri"),
           scope: params.get("scope"),
-          state: params.get("state"),
+          state: params.get("state") || undefined,
           code_challenge: params.get("code_challenge") || undefined,
           code_challenge_method: params.get("code_challenge_method") || undefined,
           nonce: params.get("nonce") || undefined,
+          resource: params.get("resource") || undefined,
+          organization: params.get("organization") || undefined,
           decision,
         }),
         redirect: "manual",
@@ -81,7 +99,7 @@ function ConsentForm() {
   return (
     <AuthShell
       title="Authorize application"
-      lead={`${clientId} requests access to your Noirly Identity account.`}
+      lead={`${described?.app ?? clientId} requests access to your Noirly Identity account.`}
       logo={<AuthLogo />}
     >
       {busy ? (
@@ -91,17 +109,20 @@ function ConsentForm() {
       ) : null}
       <div className="flex flex-col gap-6">
         <p className="text-[10px] uppercase tracking-[0.12em] text-[var(--muted-foreground)]">
-          Requested scopes
+          It will be able to see and do
         </p>
-        <ul className="flex flex-col divide-y divide-[var(--hairline)] rounded-xl border border-[var(--hairline)]">
-          {(scopes.length ? scopes : ["openid"]).map((scope) => (
-            <li
-              key={scope}
-              className="px-4 py-3 font-mono text-sm uppercase tracking-[0.08em]"
-            >
-              {scope}
-            </li>
-          ))}
+        <ul aria-label="What the app is asking for" className="flex flex-col divide-y divide-[var(--hairline)] rounded-xl border border-[var(--hairline)]">
+          {described
+            ? described.canSee.map((line) => (
+                <li key={line} className="px-4 py-3 text-sm">
+                  {line}
+                </li>
+              ))
+            : (scopes.length ? scopes : ["openid"]).map((scope) => (
+                <li key={scope} className="px-4 py-3 font-mono text-sm uppercase tracking-[0.08em]">
+                  {scope}
+                </li>
+              ))}
         </ul>
         <form className="flex flex-col gap-3 sm:flex-row" onSubmit={onApprove}>
           <Button

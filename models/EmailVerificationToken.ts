@@ -14,6 +14,11 @@ const emailVerificationTokenSchema = new Schema(
       unique: true,
       index: true,
     },
+    // The six-digit code in the same email (lib/security/email-code.ts), and wrong tries at it.
+    codeHash: { type: String, default: null },
+    attempts: { type: Number, default: 0 },
+    // Set for an additional address (UserEmail); null for the account's primary one.
+    addressId: { type: Schema.Types.ObjectId, ref: "UserEmail", default: null },
     expiresAt: { type: Date, required: true },
     usedAt: { type: Date, default: null },
   },

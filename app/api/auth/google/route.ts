@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { errorResponse } from "@/lib/api/errors";
+import { AppError, errorResponse } from "@/lib/api/errors";
 import { enforceRateLimit } from "@/lib/api/request";
+import { withDb } from "@/lib/api/with-db";
+import { securitySession } from "@/lib/security/security-session";
 import {
   buildGoogleAuthorizationUrl,
   isGoogleOAuthConfigured,
@@ -9,7 +11,7 @@ import {
 } from "@/lib/auth/google";
 import { safeReturnTo, signOAuthState } from "@/lib/auth/oauth-state";
 import { getEnv, isProduction } from "@/lib/config/env";
-import { applySecurityHeaders } from "@/lib/security/headers";
+import { applySecurityHeaders, redirectGet } from "@/lib/security/headers";
 
 const GOOGLE_STATE_COOKIE = "noirly_google_oauth";
 
@@ -27,7 +29,21 @@ export async function GET(request: NextRequest) {
 
     const env = getEnv();
     const secrets = newGoogleOAuthSecrets();
-    const returnTo = safeReturnTo(
+    // Linking from settings adds a way into the account, so it takes a recent sign-in, like other security changes.
+    let linkSessionId: string | undefined;
+    if (request.nextUrl.searchParams.get("intent") === "link") {
+      try {
+        const { ctx } = await withDb(() => securitySession(true));
+        linkSessionId = ctx.session._id.toString();
+      } catch (error) {
+        const url = new URL("/account", env.APP_URL);
+        url.searchParams.set("provider", "google");
+        url.searchParams.set("link_error", error instanceof AppError && error.code === "reauth_required" ? "reauth_required" : "unauthorized");
+        url.hash = "sign-in-methods";
+        return redirectGet(url);
+      }
+    }
+    const returnTo = linkSessionId ? "/account" : safeReturnTo(
       request.nextUrl.searchParams.get("return_to"),
       env.APP_URL,
     );
@@ -37,6 +53,7 @@ export async function GET(request: NextRequest) {
       returnTo,
       nonce: secrets.nonce,
       exp: Date.now() + 10 * 60 * 1000,
+      linkSessionId,
     });
 
     const loginHint = request.nextUrl.searchParams.get("login_hint")?.trim() || undefined;

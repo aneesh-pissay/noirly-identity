@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { applySecurityHeaders } from "@/lib/security/headers";
+import { getEnv } from "@/lib/config/env";
 
 export class AppError extends Error {
   constructor(
@@ -46,15 +47,20 @@ export function errorResponse(error: unknown): NextResponse {
   }
 
   if (error instanceof OAuthError) {
-    return applySecurityHeaders(
-      NextResponse.json(
-        {
-          error: error.error,
-          error_description: error.errorDescription,
-        },
-        { status: error.status },
-      ),
+    const response = NextResponse.json(
+      {
+        error: error.error,
+        error_description: error.errorDescription,
+      },
+      { status: error.status },
     );
+    // Say how to authenticate: RFC 6750 §3 for bearer tokens, RFC 6749 §5.2 for apps.
+    if (error.error === "invalid_token" && error.status === 401) {
+      response.headers.set("WWW-Authenticate", `Bearer error="invalid_token", error_description="${(error.errorDescription ?? "").replace(/"/g, "'")}"`);
+    } else if (error.error === "invalid_client" && error.status === 401) {
+      response.headers.set("WWW-Authenticate", 'Basic realm="Noirly Identity"');
+    }
+    return applySecurityHeaders(response);
   }
 
   console.error("Unhandled request error");
@@ -77,6 +83,8 @@ export function oauthRedirectError(
 ): NextResponse {
   const url = new URL(redirectUri);
   url.searchParams.set("error", error);
+  // RFC 9207: says who answered, so an app talking to several providers can't be mixed up.
+  url.searchParams.set("iss", getEnv().OIDC_ISSUER.replace(/\/$/, ""));
   if (errorDescription) {
     url.searchParams.set("error_description", errorDescription);
   }

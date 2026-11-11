@@ -1,9 +1,21 @@
 import { generateKeyPairSync, randomBytes } from "node:crypto";
 import { MongoMemoryServer } from "mongodb-memory-server";
-import { afterAll, beforeAll, beforeEach } from "vitest";
+import { afterAll, beforeAll, beforeEach, vi } from "vitest";
+
+// The real argon2 whenever this machine can load its native binary; otherwise
+// (an application control policy blocking it, say) a test-only stand-in.
+vi.mock("argon2", async () => {
+  try {
+    return await vi.importActual<typeof import("argon2")>("argon2");
+  } catch {
+    console.warn("argon2 couldn't be loaded here; tests use a scrypt stand-in for password hashing.");
+    return await import("./support/argon2-fallback");
+  }
+});
 import { resetEnvCache } from "../lib/config/env";
 import { disconnectMongo } from "../lib/db/mongodb";
 import { resetSigningKeyCache } from "../lib/oidc/keys";
+import { resetAlertRuleCache } from "../lib/audit/alert-rules";
 import { resetRateLimitStore } from "../lib/security/rate-limit";
 import mongoose from "mongoose";
 
@@ -43,6 +55,9 @@ beforeAll(async () => {
 
 beforeEach(async () => {
   resetRateLimitStore();
+  // Keys and alert rules live in the database, which is emptied below.
+  resetSigningKeyCache();
+  resetAlertRuleCache();
   const collections = await mongoose.connection.db?.collections();
   if (collections) {
     for (const collection of collections) {

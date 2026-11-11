@@ -2,6 +2,7 @@ import { assertEmailVerified, isBlockedUser } from "@/lib/auth/user-policy";
 import { AppError } from "@/lib/api/errors";
 import { getEnv } from "@/lib/config/env";
 import { getActiveClient } from "@/lib/oauth/clients";
+import { mayUseApp } from "@/lib/oauth/access-policy";
 import { createIdToken } from "@/lib/oidc/id-token";
 import {
   refreshSessionExpiry,
@@ -75,6 +76,10 @@ export async function mintMobileTokens(input: {
     throw new AppError("User is not available", 401, "invalid_credentials");
   }
   assertEmailVerified(user);
+  // The app's access policy applies to native sign-ins too.
+  if (!(await mayUseApp(await getActiveClient(input.clientId), user._id))) {
+    throw new AppError("This account doesn't have access to this app", 403, "access_denied");
+  }
 
   const env = getEnv();
   await refreshSessionExpiry(sessionCtx.session._id, env.REFRESH_TOKEN_TTL_SECONDS);
@@ -103,7 +108,9 @@ export async function mintMobileTokens(input: {
     clientId: input.clientId,
     scope: input.scope,
     nonce: input.nonce,
-    authTime: user.lastLoginAt ?? sessionCtx.session.createdAt,
+    authTime: sessionCtx.session.authenticatedAt,
+    methods: sessionCtx.session.methods,
+    sessionId: sessionCtx.session._id,
   });
 
   return {

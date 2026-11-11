@@ -4,7 +4,7 @@ import { OAuthClient, type OAuthClientDocument } from "@/models/OAuthClient";
 export async function getActiveClient(
   clientId: string,
 ): Promise<OAuthClientDocument> {
-  const client = await OAuthClient.findOne({ clientId }).select("+clientSecretHash");
+  const client = await OAuthClient.findOne({ clientId }).select("+clientSecretHash +previousSecretHash");
   if (!client || client.status !== "active") {
     throw new OAuthError("invalid_client", "Unknown or inactive client", 401);
   }

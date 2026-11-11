@@ -6,7 +6,8 @@ import { ThemeControls } from "@/components/ThemeControls";
 
 const BRAND_NAME = "Noirly Identity";
 
-export function MarketingHeader() {
+/** `links` sit before the theme controls (the landing page links the Docs; the Docs link sign-in or the account). */
+export function MarketingHeader({ links = [] }: { links?: { href: string; label: string }[] }) {
   return (
     <header className="sticky top-0 z-20 border-b border-[var(--hairline)] bg-[var(--bg)]/70 backdrop-blur-xl">
       <div className="shell flex h-[4.5rem] items-center justify-between gap-4 md:h-20">
@@ -25,7 +26,14 @@ export function MarketingHeader() {
             <span className="truncate">{BRAND_NAME}</span>
           </span>
         </Link>
-        <ThemeControls />
+        <div className="flex items-center gap-3 sm:gap-5">
+          {links.map((link) => (
+            <Link key={link.href} href={link.href} className="focusable rounded-[var(--r-sm)] text-sm text-[var(--muted-foreground)] hover:text-[var(--foreground)]">
+              {link.label}
+            </Link>
+          ))}
+          <ThemeControls />
+        </div>
       </div>
     </header>
   );

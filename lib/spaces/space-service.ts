@@ -5,6 +5,9 @@ import { Organization } from "@/models/Organization";
 import { OrganizationMembership } from "@/models/OrganizationMembership";
 import { User } from "@/models/User";
 import type { OrganizationRole } from "@/types";
+import { currentSubject } from "@/lib/account/merge-webhooks";
+import { factorCount, factorCounts } from "@/lib/security/factors";
+import { startGraceForMembers } from "@/lib/security/enrollment";
 
 /**
  * Spaces: one team shared by every Noirly app (stored as Organizations).
@@ -22,6 +25,8 @@ export type SpaceSummary = {
   slug: string;
   role: SpaceRole;
   memberCount: number;
+  /** Every member must use a second step at sign-in. */
+  requireMfa: boolean;
 };
 
 export type SpaceMember = {
@@ -30,11 +35,17 @@ export type SpaceMember = {
   email: string;
   displayName: string;
   role: SpaceRole;
+  /** For an admin limited to some areas (delegated administration); absent means all. */
+  adminAreas?: string[];
 };
 
-export type SpaceDetail = { id: string; name: string; slug: string; members: SpaceMember[] };
+export type SpaceDetail = { id: string; name: string; slug: string; requireMfa: boolean; members: SpaceMember[] };
 
 const RANK: Record<SpaceRole, number> = { member: 1, admin: 2, owner: 3 };
+
+/** What an admin can be limited to; owners can always do everything. */
+export const ADMIN_AREAS = ["members", "settings", "domains", "apps", "access"] as const;
+export type AdminArea = (typeof ADMIN_AREAS)[number];
 
 function oid(id: string, what = "id") {
   if (!/^[a-f0-9]{24}$/i.test(id)) throw new AppError(`Invalid ${what}`, 400, "invalid_request");
@@ -54,8 +65,12 @@ async function requireLiveSpace(spaceId: string) {
   return space;
 }
 
-/** The viewer's role in a space; outsiders get the same 404 as a missing space. */
-async function requireRole(spaceId: string, userId: string, min: SpaceRole): Promise<SpaceRole> {
+/**
+ * The viewer's role in a space; outsiders get the same 404 as a missing space.
+ * With `area`, an admin limited to other areas (delegated administration) is
+ * refused too.
+ */
+async function requireRole(spaceId: string, userId: string, min: SpaceRole, area?: AdminArea): Promise<SpaceRole> {
   await requireLiveSpace(spaceId);
   const membership = await OrganizationMembership.findOne({
     organizationId: oid(spaceId, "space"),
@@ -64,7 +79,28 @@ async function requireRole(spaceId: string, userId: string, min: SpaceRole): Pro
   if (!membership) throw new AppError("Space not found", 404, "not_found");
   const role = membership.role as SpaceRole;
   if (RANK[role] < RANK[min]) throw new AppError("You don't have permission to do that", 403, "forbidden");
+  if (area && role === "admin" && Array.isArray(membership.adminAreas) && !membership.adminAreas.includes(area)) {
+    throw new AppError("You don't have permission to do that", 403, "forbidden");
+  }
   return role;
+}
+
+/** May this person administer this area of the space (owners always; admins unless limited)? */
+export async function canAdminister(spaceId: string, userId: string, area: AdminArea): Promise<boolean> {
+  try {
+    await requireRole(spaceId, userId, "admin", area);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Someone's role in a live space, or null if they aren't in it (or it's gone). */
+export async function roleIn(spaceId: string, userId: string): Promise<SpaceRole | null> {
+  if (!/^[a-f0-9]{24}$/i.test(spaceId) || !/^[a-f0-9]{24}$/i.test(userId)) return null;
+  if (!(await Organization.exists({ _id: new Types.ObjectId(spaceId), status: "active" }))) return null;
+  const membership = await OrganizationMembership.findOne({ organizationId: new Types.ObjectId(spaceId), userId: new Types.ObjectId(userId) }).select("role").lean();
+  return (membership?.role as SpaceRole | undefined) ?? null;
 }
 
 async function ownerCount(spaceId: Types.ObjectId) {
@@ -89,6 +125,7 @@ export async function listSpacesForUser(userId: string): Promise<SpaceSummary[]>
     slug: space.slug,
     role: roleById.get(String(space._id))!,
     memberCount: countById.get(String(space._id)) ?? 0,
+    requireMfa: Boolean(space.requireMfa),
   }));
 }
 
@@ -103,10 +140,10 @@ export async function getSpace(spaceId: string): Promise<SpaceDetail> {
     const user = userById.get(String(m.userId));
     // A disabled account keeps its seat but no app should treat it as a member.
     if (!user || user.status === "disabled") return [];
-    return [{ userId: String(m.userId), email: user.email, displayName: user.displayName, role: m.role as SpaceRole }];
+    return [{ userId: String(m.userId), email: user.email, displayName: user.displayName, role: m.role as SpaceRole, ...(Array.isArray(m.adminAreas) ? { adminAreas: m.adminAreas } : {}) }];
   });
   members.sort((a, b) => RANK[b.role] - RANK[a.role] || a.displayName.localeCompare(b.displayName));
-  return { id: String(space._id), name: space.name, slug: space.slug, members };
+  return { id: String(space._id), name: space.name, slug: space.slug, requireMfa: Boolean(space.requireMfa), members };
 }
 
 /** A space as seen by one of its members. */
@@ -154,10 +191,28 @@ export async function createSpace(input: {
 }
 
 export async function renameSpace(actorId: string, spaceId: string, name: string): Promise<SpaceDetail> {
-  await requireRole(spaceId, actorId, "admin");
+  await requireRole(spaceId, actorId, "admin", "settings");
   const trimmed = name.trim();
   if (!trimmed || trimmed.length > 80) throw new AppError("Give the space a name (up to 80 characters)", 400, "invalid_request");
   await Organization.updateOne({ _id: oid(spaceId, "space") }, { $set: { name: trimmed } });
+  return getSpace(spaceId);
+}
+
+/**
+ * Requires (or stops requiring) every member to use a second step at
+ * sign-in. Admins decide; one turning it on must already have a second step,
+ * so they aren't the first locked behind it.
+ */
+export async function setSpaceMfaRequired(actorId: string, spaceId: string, required: boolean): Promise<SpaceDetail> {
+  await requireRole(spaceId, actorId, "admin", "settings");
+  if (required && factorCount(await factorCounts(actorId)) === 0) {
+    throw new AppError("Set up a second step on your own account first: an authenticator app, passkey or security key.", 400, "no_second_factor");
+  }
+  const before = await Organization.findOneAndUpdate({ _id: oid(spaceId, "space") }, { $set: { requireMfa: required } }).select("name requireMfa").lean();
+  if (required && before && !before.requireMfa) {
+    const members = await OrganizationMembership.find({ organizationId: before._id }).select("userId").lean();
+    await startGraceForMembers(members.map((m) => m.userId), before.name);
+  }
   return getSpace(spaceId);
 }
 
@@ -168,7 +223,7 @@ export async function addMemberByEmail(
   email: string,
   role: SpaceRole,
 ): Promise<SpaceDetail> {
-  const actorRole = await requireRole(spaceId, actorId, "admin");
+  const actorRole = await requireRole(spaceId, actorId, "admin", "members");
   if (role === "owner" && actorRole !== "owner") throw new AppError("Only an owner can add owners", 403, "forbidden");
   const user = await User.findOne({ email: normalizeEmail(email) }).lean();
   // Same answer whether the account is missing or unverified: no account probing.
@@ -178,7 +233,14 @@ export async function addMemberByEmail(
   const exists = await OrganizationMembership.exists({ organizationId: oid(spaceId, "space"), userId: user._id });
   if (exists) throw new AppError("They're already in this space", 409, "already_member");
   await OrganizationMembership.create({ organizationId: oid(spaceId, "space"), userId: user._id, role });
+  await membershipChanged(String(user._id), spaceId, "added", role);
   return getSpace(spaceId);
+}
+
+/** Tells subscribed apps (lifecycle webhooks, lib/webhooks/lifecycle.ts); never throws. */
+export async function membershipChanged(userId: string, spaceId: string, change: string, role?: string | null) {
+  const { emitLifecycle } = await import("@/lib/webhooks/lifecycle");
+  await emitLifecycle("membership.changed", { userId, organizationId: spaceId, data: { change, ...(role ? { role } : {}) } });
 }
 
 export async function changeMemberRole(
@@ -187,7 +249,7 @@ export async function changeMemberRole(
   targetId: string,
   role: SpaceRole,
 ): Promise<SpaceDetail> {
-  const actorRole = await requireRole(spaceId, actorId, "admin");
+  const actorRole = await requireRole(spaceId, actorId, "admin", "members");
   const space = oid(spaceId, "space");
   const target = await OrganizationMembership.findOne({ organizationId: space, userId: oid(targetId, "user") });
   if (!target) throw new AppError("They're not in this space", 404, "not_found");
@@ -200,13 +262,14 @@ export async function changeMemberRole(
   }
   target.role = role;
   await target.save();
+  await membershipChanged(targetId, spaceId, "role_changed", role);
   return getSpace(spaceId);
 }
 
 /** Removes a member (admins), or leaves (anyone, for themselves). */
 export async function removeMember(actorId: string, spaceId: string, targetId: string): Promise<void> {
   const self = actorId === targetId;
-  const actorRole = await requireRole(spaceId, actorId, self ? "member" : "admin");
+  const actorRole = await requireRole(spaceId, actorId, self ? "member" : "admin", self ? undefined : "members");
   const space = oid(spaceId, "space");
   const target = await OrganizationMembership.findOne({ organizationId: space, userId: oid(targetId, "user") });
   if (!target) throw new AppError("They're not in this space", 404, "not_found");
@@ -220,6 +283,9 @@ export async function removeMember(actorId: string, spaceId: string, targetId: s
     }
   }
   await target.deleteOne();
+  const { removeFromAllTeams } = await import("@/lib/spaces/teams");
+  await removeFromAllTeams(space, target.userId);
+  await membershipChanged(targetId, spaceId, self ? "left" : "removed");
   // Nobody left: the space goes too.
   if (!(await OrganizationMembership.exists({ organizationId: space }))) {
     await Organization.updateOne({ _id: space }, { $set: { status: "disabled" } });
@@ -234,9 +300,9 @@ export async function deleteSpace(actorId: string, spaceId: string): Promise<voi
   await Organization.updateOne({ _id: space }, { $set: { status: "disabled" } });
 }
 
-/** Spaces a user belongs to, for an app acting on their behalf. */
+/** Spaces a user belongs to, for an app acting on their behalf; a merged-away `sub` answers for the account it went to. */
 export async function spacesForSubject(sub: string): Promise<SpaceSummary[]> {
-  return listSpacesForUser(sub);
+  return listSpacesForUser(await currentSubject(sub));
 }
 
 /**
@@ -266,4 +332,38 @@ export async function spaceIdsForUser(userId: Types.ObjectId): Promise<string[]>
   return (await OrganizationMembership.find({ userId }).select("organizationId").lean()).map((m) =>
     String(m.organizationId),
   );
+}
+
+/**
+ * Hands the space to another member: they become an owner and the owner
+ * handing it over becomes an admin, in one step, so the space always has one.
+ */
+export async function transferOwnership(actorId: string, spaceId: string, targetId: string): Promise<SpaceDetail> {
+  await requireRole(spaceId, actorId, "owner");
+  if (actorId === targetId) throw new AppError("Choose someone else", 400, "invalid_request");
+  const space = oid(spaceId, "space");
+  const target = await OrganizationMembership.findOne({ organizationId: space, userId: oid(targetId, "user") });
+  if (!target) throw new AppError("They're not in this space", 404, "not_found");
+  const user = await User.findById(target.userId).select("status emailVerified").lean();
+  if (!user || user.status !== "active" || !user.emailVerified) throw new AppError("Ownership can only go to an active, verified account", 409, "inactive_account");
+  await OrganizationMembership.updateOne({ _id: target._id }, { $set: { role: "owner" }, $unset: { adminAreas: 1 } });
+  await OrganizationMembership.updateOne({ organizationId: space, userId: oid(actorId, "user") }, { $set: { role: "admin" }, $unset: { adminAreas: 1 } });
+  return getSpace(spaceId);
+}
+
+/**
+ * Delegated administration: limits an admin to some areas (members,
+ * settings, domains, apps), or (null) lets them do everything admins can.
+ * Owners decide.
+ */
+export async function setAdminAreas(actorId: string, spaceId: string, targetId: string, areas: AdminArea[] | null): Promise<SpaceDetail> {
+  await requireRole(spaceId, actorId, "owner");
+  const target = await OrganizationMembership.findOne({ organizationId: oid(spaceId, "space"), userId: oid(targetId, "user") });
+  if (!target) throw new AppError("They're not in this space", 404, "not_found");
+  if (target.role !== "admin") throw new AppError("Only admins can have their areas limited", 409, "not_admin");
+  const unknown = (areas ?? []).filter((a) => !(ADMIN_AREAS as readonly string[]).includes(a));
+  if (unknown.length) throw new AppError(`Unknown areas: ${unknown.join(", ")}`, 400, "invalid_request");
+  if (areas === null) await OrganizationMembership.updateOne({ _id: target._id }, { $unset: { adminAreas: 1 } });
+  else await OrganizationMembership.updateOne({ _id: target._id }, { $set: { adminAreas: [...new Set(areas)] } });
+  return getSpace(spaceId);
 }

@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
+import { DEVICE_COOKIE } from "@/lib/security/device";
 
 function configuredOrigin(value: string | undefined): string {
   try { return value ? new URL(value).origin : ""; } catch { return ""; }
 }
+
+/** Pages that sign this browser out, and so may frame any app's logout URL. */
+const FRONTCHANNEL_PAGES = new Set(["/logout", "/account"]);
 
 export function securePageResponse(request: NextRequest) {
   const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
@@ -17,7 +21,8 @@ export function securePageResponse(request: NextRequest) {
     "img-src 'self' data: blob: https:",
     "font-src 'self' data: https://fonts.gstatic.com",
     `connect-src 'self' https://accounts.google.com ${identity} ${realtime}${isDev ? " ws: http://localhost:*" : ""}`,
-    "frame-src https://accounts.google.com",
+    // Sign-out pages load apps' front-channel logout URLs in hidden frames (lib/oidc/frontchannel-client.ts).
+    FRONTCHANNEL_PAGES.has(request.nextUrl.pathname) ? `frame-src https:${isDev ? " http://localhost:* http://127.0.0.1:*" : ""}` : "frame-src https://accounts.google.com",
     "object-src 'none'", "base-uri 'self'", "frame-ancestors 'none'",
     `form-action 'self' https://accounts.google.com ${identity}`,
     ...(isDev ? [] : ["upgrade-insecure-requests"]),
@@ -32,6 +37,10 @@ export function securePageResponse(request: NextRequest) {
   response.headers.set("Referrer-Policy", "no-referrer");
   response.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
   response.headers.set("Cache-Control", "private, no-store");
+  // A random id for this browser: device-aware rate limits and new-device alerts (lib/security/device.ts).
+  if (!request.cookies.get(DEVICE_COOKIE)?.value) {
+    response.cookies.set(DEVICE_COOKIE, crypto.randomUUID().replace(/-/g, ""), { httpOnly: true, sameSite: "lax", secure: !isDev, path: "/", maxAge: 2 * 365 * 86_400 });
+  }
   if (!isDev) response.headers.set("Strict-Transport-Security", "max-age=31536000");
   return response;
 }

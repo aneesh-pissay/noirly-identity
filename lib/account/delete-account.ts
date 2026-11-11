@@ -18,6 +18,16 @@ import { PasswordResetToken } from "@/models/PasswordResetToken";
 import { RefreshToken } from "@/models/RefreshToken";
 import { Session } from "@/models/Session";
 import { User, type UserDocument } from "@/models/User";
+import { UserEmail } from "@/models/UserEmail";
+import { EmailChangeUndo } from "@/models/EmailChangeUndo";
+import { Avatar } from "@/models/Avatar";
+import { AppAccess } from "@/models/AppAccess";
+import { AccountMerge } from "@/models/AccountMerge";
+import { MagicLink } from "@/models/MagicLink";
+import { PhoneVerification } from "@/models/PhoneVerification";
+import { FactorRecovery } from "@/models/FactorRecovery";
+import { purgeUserEvents, recordEvent } from "@/lib/audit/event-log";
+import { SYSTEM_STREAM } from "@/lib/audit/chain";
 
 /**
  * Deleting a Noirly account.
@@ -59,6 +69,9 @@ export async function deleteUserAccount(
   const userOid = new Types.ObjectId(sub);
   const spaceIds = await spaceIdsForUser(userOid);
   await handOverOwnedSpaces(userOid);
+  // Apps that know them hear it while that can still be worked out (it's in AppAccess, about to go).
+  const { emitLifecycle } = await import("@/lib/webhooks/lifecycle");
+  await emitLifecycle("user.deleted", { userId: sub });
   await Promise.all([
     Mfa.deleteMany({ userId }),
     Passkey.deleteMany({ userId }),
@@ -71,9 +84,21 @@ export async function deleteUserAccount(
     EmailVerificationToken.deleteMany({ userId }),
     PasswordResetToken.deleteMany({ userId }),
     LinkedAccount.deleteMany({ userId }),
+    UserEmail.deleteMany({ userId }),
+    EmailChangeUndo.deleteMany({ userId }),
+    Avatar.deleteMany({ userId }),
+    AppAccess.deleteMany({ userId }),
+    MagicLink.deleteMany({ userId }),
+    PhoneVerification.deleteMany({ userId }),
+    FactorRecovery.deleteMany({ userId }),
+    AccountMerge.deleteMany({ $or: [{ keeperId: userId }, { sourceId: userId }] }),
     OrganizationMembership.deleteMany({ userId }),
   ]);
   await User.deleteOne({ _id: userId });
+  // The account's own history goes with it; that it was deleted (by id only) is kept.
+  await purgeUserEvents(sub);
+  // No address or device: what's left of a deleted account is that it existed and went.
+  await recordEvent({ action: "account.deleted", stream: SYSTEM_STREAM, subjectId: sub, data: { spaces: spaceIds.length } });
   await notifySpaceChanged(spaceIds);
   return { deleted: true, ...(await notifyAccountDeleted(sub)) };
 }

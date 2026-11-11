@@ -22,7 +22,7 @@ const copy: Record<
 > = {
   verified: {
     title: "Email verified",
-    body: "Your Noirly account has been successfully verified.",
+    body: "Your email address has been verified.",
     cta: "Continue to Noirly",
     href: "/login",
   },

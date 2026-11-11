@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, Suspense, useEffect, useState } from "react";
+import { solveSignupChallenge } from "@/lib/auth/solve-challenge";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AuthShell } from "@noirly-dev/ui";
 import { AuthLogo } from "@/components/AuthLogo";
@@ -47,6 +48,9 @@ function RegisterForm() {
     const form = new FormData(event.currentTarget);
     const email = String(form.get("email") ?? "");
     try {
+      // A moment's work first, so scripts can't make accounts by the thousand.
+      const { challenge, bits } = (await (await fetch("/api/auth/register/challenge", { cache: "no-store" })).json()) as { challenge: string; bits: number };
+      const solution = await solveSignupChallenge(challenge, bits);
       const res = await fetch("/api/auth/register", {
         method: "POST",
         credentials: "include",
@@ -59,6 +63,8 @@ function RegisterForm() {
           password: form.get("password"),
           firstName: form.get("firstName"),
           lastName: form.get("lastName"),
+          challenge,
+          solution,
         }),
       });
       if (!res.ok) {
