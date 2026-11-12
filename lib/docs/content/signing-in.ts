@@ -326,7 +326,8 @@ export const signingIn: DocArticle[] = [
     advanced: [
       "Sessions made this way report `amr` `fed`. A space can list single sign-on as its only allowed method.",
       "When required, existing sessions made another way are ended.",
-      "If you're deactivated in the organization's directory, your account is locked and signed out everywhere.",
+      "If you're deactivated in the organization's directory, your account is locked and signed out everywhere, and you're emailed.",
+      "The first time your organization makes your account, you're emailed who made it and how to sign in.",
     ],
     troubleshooting: [
       { problem: "“Single sign-on isn't set up for that address”", solution: "Your organization hasn't connected that domain. Sign in the usual way, or ask your admin." },

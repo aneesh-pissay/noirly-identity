@@ -89,7 +89,7 @@ export const admin: DocArticle[] = [
     ],
     options: [{ name: "Retry now", description: "Retries every app that hasn't confirmed, including those given up on." }],
     permissions: [ADMINS],
-    advanced: ["The scheduled job retries automatically, up to 20 times per app."],
+    advanced: ["The scheduled job retries automatically, up to 20 times per app.", "When retries give up, admins get one email per run naming the apps and how many accounts each missed."],
     troubleshooting: [{ problem: "An app keeps failing", solution: "Its endpoint is down or rejecting the token; check its logs." }],
     related: ["closing-your-account", "logout-and-webhooks", "compliance-evidence"],
     sources: ["components/AdminDeletions.tsx", "app/(app)/admin/deletions/page.tsx", "lib/account/deletion-status.ts", "app/api/admin/deletions/route.ts"],
@@ -132,7 +132,7 @@ export const admin: DocArticle[] = [
       "Identity signs tokens with one active key; the next one is published before use and retired ones stay published until their tokens expire. `npm run keys:rotate` rotates them (daily is safe).\n\n`npm run compliance:evidence`, or `GET /api/admin/evidence`, collects live evidence: audit chain integrity, key age, retention, second-step coverage for admins, locked accounts, deletion notices, recovery requests, alert rules and sessions. Each check has `ok`; the script exits 1 if any fails. Policies and the controls list are in `docs/compliance/`.",
     steps: [
       { title: "Schedule key rotation", body: "Run `npm run keys:rotate` daily; `-- --now --drop-old` for a leaked key." },
-      { title: "Schedule evidence", body: "Run `npm run compliance:evidence` and alert on a non-zero exit." },
+      { title: "Schedule evidence", body: "Run `npm run compliance:evidence -- --notify`: it exits 1 and emails Identity's admins when a control fails." },
       { title: "For a review", body: "Hand over evidence from the start and end of the period, the admin log export, and `docs/compliance/`." },
     ],
     faqs: [{ question: "Does the evidence include personal data?", answer: "No: counts and ids only, so it can go to an auditor as is." }],

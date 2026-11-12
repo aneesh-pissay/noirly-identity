@@ -70,10 +70,12 @@ Leave the claim names empty to use the preset's. Otherwise:
 
 ## Requiring single sign-on
 
+Owners (and admins with the domains area) are emailed whenever a provider is added, changed or removed, and whenever enforcement or break-glass accounts change.
+
 Turn on **Require single sign-on for these domains**, and:
 
 - signing in any other way (password, passkey, Google, an emailed link…) is refused for addresses at the IdPs' domains, and the login page sends them straight to the IdP;
-- their sessions that didn't come through the IdP end at once.
+- their sessions that didn't come through the IdP end at once (apps are told, as for any sign-out), and each person is emailed how to sign in now.
 
 ### Break-glass accounts (when the IdP is down)
 

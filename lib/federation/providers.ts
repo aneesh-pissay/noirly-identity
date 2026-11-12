@@ -7,6 +7,7 @@ import { recordEvent } from "@/lib/audit/event-log";
 import { getEnv } from "@/lib/config/env";
 import { presetIssuer, presetScopes } from "@/lib/federation/presets";
 import { sealSecret } from "@/lib/security/encryption";
+import { actorLabel, noticeToSpaceOwners, spaceName } from "@/lib/notifications/notices";
 import { requireDomainOwner } from "@/lib/spaces/domains";
 import { roleIn } from "@/lib/spaces/space-service";
 import { IdentityProvider, type FederationPreset, type FederationProtocol, type IdentityProviderDocument, type SamlCertificate } from "@/models/IdentityProvider";
@@ -226,6 +227,15 @@ export async function saveProvider(actorId: string, spaceId: string, input: Prov
   }
 
   await doc.save();
+  await noticeToSpaceOwners(spaceId, {
+    kind: "sso-changed",
+    subject: `Single sign-on ${existing ? "changed" : "added"} in ${await spaceName(spaceId)}`,
+    paragraphs: [
+      `${await actorLabel(actorId)} ${existing ? "changed" : "added"} the identity provider “${name}” for ${domains.join(", ")}. People at ${domains.length > 1 ? "these domains" : "this domain"} sign in through it${doc.enabled ? "" : " once it's turned on"}.`,
+      "Whoever controls an identity provider controls sign-in for its domains. If you didn't expect this, check the space's single sign-on settings now.",
+    ],
+    action: { label: "Review single sign-on", path: "/spaces" },
+  });
   await recordEvent({ action: "sso.provider_saved", stream: orgStream(spaceId), actorId, subjectId: null, data: { organizationId: spaceId, idpId: String(doc._id), protocol: doc.protocol, preset, domains, created: !existing } });
   return providerView(doc.toObject() as IdentityProviderDocument);
 }
@@ -237,5 +247,11 @@ export async function deleteProvider(actorId: string, spaceId: string, id: strin
   if (!removed) throw new AppError("Identity provider not found", 404, "not_found");
   const { FederatedIdentity } = await import("@/models/IdentityProvider");
   await FederatedIdentity.deleteMany({ idpId: removed._id });
+  await noticeToSpaceOwners(spaceId, {
+    kind: "sso-changed",
+    subject: `Single sign-on removed in ${await spaceName(spaceId)}`,
+    paragraphs: [`${await actorLabel(actorId)} removed the identity provider “${removed.name}” for ${removed.domains.join(", ")}. People at ${removed.domains.length > 1 ? "these domains" : "this domain"} now sign in the usual way.`],
+    action: { label: "Review single sign-on", path: "/spaces" },
+  });
   await recordEvent({ action: "sso.provider_deleted", stream: orgStream(spaceId), actorId, subjectId: null, data: { organizationId: spaceId, idpId: id } });
 }

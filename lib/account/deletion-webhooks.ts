@@ -121,8 +121,9 @@ export async function notifyAccountDeleted(sub: string): Promise<{ delivered: st
   };
 }
 
-/** Retries one tombstone's pending notices (and, with `includeFailed`, the ones given up on). Returns how many still wait. */
-export async function retryDeletionRecord(record: DeletedAccountDocument, maxAttempts = 20, includeFailed = false): Promise<number> {
+/** Retries one tombstone's pending notices (and, with `includeFailed`, the ones given up on): how many still wait, and which apps gave up just now. */
+export async function retryDeletionRecord(record: DeletedAccountDocument, maxAttempts = 20, includeFailed = false): Promise<{ pending: number; gaveUp: string[] }> {
+  const gaveUp: string[] = [];
   const hooks = new Map(configuredWebhooks().map((h) => [h.clientId, h]));
   const next: DeletedAccountDocument["pending"] = [];
   const failed: DeletedAccountDocument["failed"] = includeFailed ? [] : [...(record.failed ?? [])];
@@ -135,17 +136,36 @@ export async function retryDeletionRecord(record: DeletedAccountDocument, maxAtt
     const error = await deliver(hook, record.sub);
     if (error === null) delivered.push({ clientId: item.clientId, at: new Date() });
     else if (item.attempts + 1 < maxAttempts) next.push({ clientId: item.clientId, attempts: item.attempts + 1, lastError: error });
-    else failed.push({ clientId: item.clientId, attempts: item.attempts + 1, lastError: error });
+    else {
+      failed.push({ clientId: item.clientId, attempts: item.attempts + 1, lastError: error });
+      gaveUp.push(item.clientId);
+    }
   }
   await DeletedAccount.updateOne({ _id: record._id }, { $set: { pending: next, delivered, failed } });
-  return next.length;
+  return { pending: next.length, gaveUp };
 }
 
 /** Re-sends notices that failed earlier. Returns how many are still pending. */
 export async function retryPendingDeletionNotices(maxAttempts = 20): Promise<number> {
   let stillPending = 0;
+  const gaveUp = new Map<string, number>();
   for (const record of await DeletedAccount.find({ "pending.0": { $exists: true } }).lean<DeletedAccountDocument[]>()) {
-    stillPending += await retryDeletionRecord(record, maxAttempts);
+    const result = await retryDeletionRecord(record, maxAttempts);
+    stillPending += result.pending;
+    for (const clientId of result.gaveUp) gaveUp.set(clientId, (gaveUp.get(clientId) ?? 0) + 1);
+  }
+  // One email per run, however many accounts, so an app that's down for good doesn't flood admins.
+  if (gaveUp.size) {
+    const { noticeToAdmins } = await import("@/lib/notifications/notices");
+    await noticeToAdmins({
+      kind: "deletion-gave-up",
+      subject: "Apps never confirmed account deletions",
+      paragraphs: [
+        `After every retry, these apps still haven't confirmed deleting accounts' data: ${[...gaveUp].map(([app, n]) => `${app} (${n} account${n === 1 ? "" : "s"})`).join(", ")}.`,
+        "Their data for those accounts may still exist. Check each app's deletion endpoint, then use Retry now on the deletions page.",
+      ],
+      action: { label: "Open account deletions", path: "/admin/deletions" },
+    });
   }
   return stillPending;
 }

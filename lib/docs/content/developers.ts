@@ -149,7 +149,7 @@ export const developers: DocArticle[] = [
     steps: [
       { title: "Set the URIs", body: "On the app's page under OAuth clients, or with `PATCH /api/admin/clients/:clientId`." },
       { title: "Verify every token", body: "Check `typ`, `iss`, `aud` (your client ID), `exp`, and the event in `events`." },
-      { title: "Answer 2xx", body: "Anything else is retried; drop repeats by `jti` or `txn`." },
+      { title: "Answer 2xx", body: "Anything else is retried; drop repeats by `jti` or `txn`. If your app never accepts a deletion notice or lifecycle event after every retry, Identity's admins are emailed with its name." },
     ],
     faqs: [{ question: "Do I need all of them?", answer: "Back-channel logout and account deletion are expected of every Noirly app; the rest are optional." }],
     related: ["registering-an-app", "deletion-status", "data-export-for-apps", "offboarding"],

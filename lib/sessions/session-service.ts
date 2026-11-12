@@ -179,6 +179,17 @@ async function endSessions(filter: Record<string, unknown>) {
   return { sessions: sessions as EndedSession[], backchannel: await notifySessionsEnded(sessions) };
 }
 
+/**
+ * Ends the sessions of these accounts that didn't sign in through single
+ * sign-on (SSO enforcement turned on): tokens revoked and apps told, as for
+ * any sign-out. Returns whose sessions ended.
+ */
+export async function revokeNonSsoSessions(userIds: Array<Types.ObjectId | string>): Promise<string[]> {
+  if (!userIds.length) return [];
+  const { sessions } = await endSessions({ userId: { $in: userIds.map((id) => new Types.ObjectId(String(id))) }, methods: { $ne: "sso" } });
+  return [...new Set(sessions.map((s) => String(s.userId)))];
+}
+
 export async function revokeSession(
   sessionId: Types.ObjectId | string,
 ): Promise<void> {

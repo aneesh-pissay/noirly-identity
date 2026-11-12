@@ -8,7 +8,7 @@ A space manages the identities at its **verified domains** (Business domains in 
 
 ## SCIM 2.0
 
-Tenant URL: `https://<identity>/api/scim/v2`. Authentication: a bearer token from the space's settings (**Directory → Provisioning → Create token**; shown once; owners, or admins with the domains area). Up to five tokens per space, each revocable.
+Tenant URL: `https://<identity>/api/scim/v2`. Authentication: a bearer token from the space's settings (**Directory → Provisioning → Create token**; shown once; owners, or admins with the domains area). Up to five tokens per space, each revocable. Owners are emailed when a token is made or revoked.
 
 Supported: `Users` and `Groups` (create, read, list with `attr eq "value"` filters, replace, patch, delete), `ServiceProviderConfig`, `ResourceTypes`, `Schemas`. Not supported: bulk, sorting, ETags, password changes.
 
@@ -21,7 +21,7 @@ Supported: `Users` and `Groups` (create, read, list with `attr eq "value"` filte
 | `name.givenName`, `name.familyName`, `displayName` | the profile (owned identities only) |
 | `active` | `false` deactivates (below); `true` reactivates |
 
-Creating a user whose address already has an account **adopts** that account (it joins the space; no duplicate is made), also when the address is a confirmed additional address of an account. It's a conflict (`409`) only when the person is already provisioned under another `externalId`. New accounts are created confirmed (the space owns the domain); their owner signs in through single sign-on, or sets a password with "Forgot password".
+Creating a user whose address already has an account **adopts** that account (it joins the space; no duplicate is made), also when the address is a confirmed additional address of an account. It's a conflict (`409`) only when the person is already provisioned under another `externalId`. New accounts are created confirmed (the space owns the domain); their owner signs in through single sign-on, or sets a password with "Forgot password". They're emailed that the organization made the account and how to sign in; an adopted account's owner is emailed that the organization now manages it.
 
 `DELETE` deactivates and then removes the person from the space for good; an owned identity stays locked.
 
@@ -57,7 +57,8 @@ Deactivating someone (SCIM `active: false`, the space's bulk actions, or **Direc
 - removes their membership and their teams at once, and revokes every token issued for the space;
 - for an **owned identity**: locks the account (no sign-in of any kind), ends every session and revokes every token; apps that had sessions get back-channel logout, and apps subscribed to lifecycle webhooks get `user.deactivated`;
 - sends `membership.changed` (`change: "deactivated"`) to subscribed apps;
-- keeps what they had (role, admin areas, attributes, teams, directory id) for reactivation.
+- keeps what they had (role, admin areas, attributes, teams, directory id) for reactivation;
+- emails the person: "turned off" for an owned identity, "no longer have access" otherwise. Reactivation emails them too.
 
 Owners can't be deactivated (hand over ownership first). The person can't lift an organization's lock themselves (not even by freezing and unfreezing their account); an Identity admin can.
 

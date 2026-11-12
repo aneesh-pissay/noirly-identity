@@ -142,3 +142,19 @@ See [PROVISIONING.md](PROVISIONING.md).
 - A space provisions, adopts and locks only identities at its DNS-verified domains; everyone else it can only remove from the space. Provisioning never adds an outside address to a space.
 - Deactivating an owned identity locks it (`lockKind: deprovisioned`, the space recorded), revokes every token and session, and tells apps (back-channel logout and lifecycle webhooks). The owner can't lift it with a self-freeze; only the space (reactivation) or an Identity admin can.
 - Lifecycle webhooks are signed Security Event Tokens, kept in an outbox (`webhook_deliveries`, a week) and retried with backoff; they carry ids and what changed, never profile data.
+
+## Notices
+
+Plain emails (`lib/notifications/notices.ts`) for changes people should hear about. They carry no secret or sign-in link, and never fail the change they report.
+
+| When | Who hears |
+| --- | --- |
+| An identity provider is added, changed or removed; SSO enforcement or break-glass accounts change | The space's owners, and admins with the domains area |
+| A SCIM provisioning token is made or revoked (the token itself is never emailed) | The same |
+| SSO enforcement signs someone out (their tokens are revoked and apps told, as for any sign-out) | That person, with how to sign in now |
+| An organization makes an account (first SSO sign-in, or SCIM), or adopts an existing one into its space | That person: who made it, how to sign in, and that the organization manages it |
+| An organization deactivates or reactivates someone | That person: "turned off" for an identity it owns, "no longer have access" otherwise |
+| After every retry, an app never confirmed account deletions, or stopped accepting lifecycle events | Identity admins, one summary per scheduled run |
+| `npm run compliance:evidence -- --notify` finds a failing control | Identity admins |
+
+Identity admins can also email anyone on any event with audit alert rules (`/admin/audit` → Alerts).

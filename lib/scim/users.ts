@@ -6,6 +6,7 @@ import { DeactivatedMembership, deactivateMember, forgetDeactivated, isManagedAd
 import { listResponse, parseFilter, patchOps, SCHEMA, ScimError, truthy } from "@/lib/scim/http";
 import { getEnv } from "@/lib/config/env";
 import { emitLifecycle } from "@/lib/webhooks/lifecycle";
+import { noticeToUser, spaceName } from "@/lib/notifications/notices";
 import { OrganizationMembership } from "@/models/OrganizationMembership";
 import { User, type UserDocument } from "@/models/User";
 import { UserEmail } from "@/models/UserEmail";
@@ -147,6 +148,26 @@ export async function createScimUser(organizationId: string, body: Record<string
   await recordEvent({ action: "directory.user_provisioned", stream: orgStream(organizationId), actorId: null, subjectId: user._id, data: { organizationId, accountCreated: created, adopted: !created } });
   if (created) await emitLifecycle("user.created", { userId: String(user._id), organizationId, data: { via: "scim" } });
   if (joined.upsertedCount) await emitLifecycle("membership.changed", { userId: String(user._id), organizationId, data: { change: "joined", role: "member", via: "scim" } });
+  // Not for someone provisioned inactive: they'd hear they were added and turned off at once.
+  if ((created || joined.upsertedCount) && input.active) {
+    const name = await spaceName(space);
+    await noticeToUser(user._id, created
+      ? {
+          kind: "account-created-by-org",
+          subject: `${name} made you a Noirly account`,
+          paragraphs: [
+            `${name}'s directory made a Noirly account for ${user.email} and added you to its space. You haven't signed in yet.`,
+            `To sign in, type your address on any Noirly sign-in page: if ${name} uses single sign-on you'll go to its sign-in; if not, choose “Forgot password” to set one. ${name} manages this account and can turn it off if you leave.`,
+          ],
+          action: { label: "Sign in", path: "/login" },
+        }
+      : {
+          kind: "added-by-org",
+          subject: `You've been added to ${name}`,
+          paragraphs: [`${name}'s directory added your Noirly account (${user.email}) to its space. Because your address is at ${name}'s domain, ${name} now manages this account: it can change your name and role, and turn the account off if you leave.`],
+          action: { label: "See your spaces", path: "/spaces" },
+        });
+  }
   if (!input.active) await deactivateMember(organizationId, String(user._id), { actorId: null, via: "scim" }, "Provisioned inactive by the directory");
   return getScimUser(organizationId, String(user._id));
 }

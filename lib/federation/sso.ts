@@ -10,6 +10,7 @@ import { isBlockedUser } from "@/lib/auth/user-policy";
 import { presetDefaults } from "@/lib/federation/presets";
 import { spUrls } from "@/lib/federation/providers";
 import { emitLifecycle } from "@/lib/webhooks/lifecycle";
+import { noticeToUser, spaceName } from "@/lib/notifications/notices";
 import { hmacSha256, safeEqualHex, safeEqualString } from "@/lib/security/crypto";
 import { openSecret } from "@/lib/security/encryption";
 import { createSession } from "@/lib/sessions/session-service";
@@ -300,7 +301,19 @@ export async function completeFederatedSignIn(idp: IdentityProviderDocument, cla
   // Membership of the organization comes with its sign-in.
   const joined = await OrganizationMembership.updateOne({ organizationId: idp.organizationId, userId: user._id }, { $setOnInsert: { role: "member" } }, { upsert: true });
   const spaceId = String(idp.organizationId);
-  if (created) await emitLifecycle("user.created", { userId: String(user._id), organizationId: spaceId, data: { via: "sso" } });
+  if (created) {
+    await emitLifecycle("user.created", { userId: String(user._id), organizationId: spaceId, data: { via: "sso" } });
+    const name = await spaceName(spaceId);
+    await noticeToUser(user._id, {
+      kind: "account-created-by-org",
+      subject: `Your Noirly account, through ${name}`,
+      paragraphs: [
+        `You signed in to Noirly for the first time with ${name}'s sign-in (${idp.name}), so a Noirly account was made for ${user.email} and you joined ${name}'s space.`,
+        `You sign in the same way from now on: type your address on any Noirly sign-in page. ${name} manages this account: it can change your name and role, and turn the account off if you leave.`,
+      ],
+      action: { label: "See your account", path: "/account" },
+    });
+  }
   if (joined.upsertedCount) {
     await recordEvent({ action: "sso.user_provisioned", stream: orgStream(spaceId), actorId: null, subjectId: user._id, data: { organizationId: spaceId, idpId: String(idp._id), accountCreated: created } });
     await emitLifecycle("membership.changed", { userId: String(user._id), organizationId: spaceId, data: { change: "joined", role: "member", via: "sso" } });

@@ -5,6 +5,7 @@ import { recordEvent } from "@/lib/audit/event-log";
 import { revokeAllUserSessions } from "@/lib/sessions/session-service";
 import { canAdminister, roleIn } from "@/lib/spaces/space-service";
 import { emitLifecycle } from "@/lib/webhooks/lifecycle";
+import { noticeToUser, spaceName } from "@/lib/notifications/notices";
 import { AccessToken } from "@/models/AccessToken";
 import { OrganizationMembership } from "@/models/OrganizationMembership";
 import { RefreshToken } from "@/models/RefreshToken";
@@ -129,6 +130,22 @@ export async function deactivateMember(spaceIdInput: string, userIdInput: string
   }
 
   const data = { organizationId: spaceIdInput, via: actor.via, accountLocked: managed, sessionsEnded, reason };
+  const name = await spaceName(space);
+  await noticeToUser(userId, managed
+    ? {
+        kind: "deactivated-by-org",
+        subject: `${name} turned off your Noirly account`,
+        paragraphs: [
+          `${name} manages your Noirly account (${user.email}) and has turned it off. You've been signed out everywhere, and Noirly apps can no longer see your details.`,
+          `If you think this is a mistake, ask ${name}'s administrator. Only ${name} can turn it back on.`,
+        ],
+      }
+    : {
+        kind: "removed-by-org",
+        subject: `You no longer have access to ${name}`,
+        paragraphs: [`${name} has removed you from its space. Your Noirly account itself is unchanged, and you can keep using it for everything else. If you think this is a mistake, ask ${name}'s administrator.`],
+        action: { label: "See your spaces", path: "/spaces" },
+      });
   await recordEvent({ action: "directory.member_deactivated", stream: orgStream(spaceIdInput), actorId: actor.actorId, subjectId: userIdInput, data });
   if (managed) await recordEvent({ action: "account.locked", subjectId: userIdInput, actorId: actor.actorId, data: { by: "organization", organizationId: spaceIdInput, reason } });
   await emitLifecycle("membership.changed", { userId: userIdInput, organizationId: spaceIdInput, data: { change: "deactivated" } });
@@ -169,6 +186,13 @@ export async function reactivateMember(spaceIdInput: string, userIdInput: string
   }
   await recordEvent({ action: "directory.member_reactivated", stream: orgStream(spaceIdInput), actorId: actor.actorId, subjectId: userIdInput, data: { organizationId: spaceIdInput, via: actor.via, accountUnlocked: unlocked } });
   if (unlocked) await recordEvent({ action: "account.unlocked", subjectId: userIdInput, actorId: actor.actorId, data: { by: "organization", organizationId: spaceIdInput } });
+  const name = await spaceName(space);
+  await noticeToUser(userId, {
+    kind: "reactivated-by-org",
+    subject: unlocked ? `${name} turned your Noirly account back on` : `You're back in ${name}`,
+    paragraphs: [unlocked ? `${name} turned your Noirly account (${user.email}) back on, with your previous role and teams. Sign in as you did before.` : `${name} gave you back access to its space, with your previous role and teams.`],
+    action: { label: unlocked ? "Sign in" : "See your spaces", path: unlocked ? "/login" : "/spaces" },
+  });
   await emitLifecycle("membership.changed", { userId: userIdInput, organizationId: spaceIdInput, data: { change: "reactivated", role: kept.role } });
   if (unlocked) await emitLifecycle("user.reactivated", { userId: userIdInput, organizationId: spaceIdInput });
   return { accountUnlocked: unlocked };

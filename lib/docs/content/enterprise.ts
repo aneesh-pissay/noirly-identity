@@ -40,6 +40,7 @@ export const enterprise: DocArticle[] = [
       "OpenID Connect uses the authorization code flow with PKCE and a nonce; ID tokens are checked against the provider's published keys.",
       "SAML needs signed assertions; responses must answer a request Identity sent, within 10 minutes, once, in the same browser.",
       "Client secrets are stored encrypted. The full setup guides are in `docs/SSO.md`.",
+      "Owners and admins with the domains area are emailed whenever a connection is added, changed or removed.",
     ],
     troubleshooting: [
       { problem: "“Couldn't read the provider's OpenID configuration”", solution: "Check the tenant ID, Okta domain or issuer. Identity reads `/.well-known/openid-configuration` from it." },
@@ -82,6 +83,7 @@ export const enterprise: DocArticle[] = [
       "Turning it on needs at least one enabled provider.",
       "Break-glass sign-ins are `sso.break_glass_used` events in the space's activity.",
       "The sign-in page sends addresses at enforced domains straight to the provider.",
+      "Owners are emailed when enforcement or break-glass accounts change; people signed out by it are emailed how to sign in now.",
     ],
     troubleshooting: [
       { problem: "“Break-glass accounts need a second step first”", solution: "Have them set up an authenticator or passkey, then save again." },
@@ -179,6 +181,7 @@ export const enterprise: DocArticle[] = [
     advanced: [
       "Supported: Users and Groups (create, read, filter `attr eq \"value\"`, replace, patch, delete), ServiceProviderConfig, ResourceTypes, Schemas.",
       "Entra's and Okta's PATCH styles are both handled.",
+      "Owners are emailed when a token is made or revoked; people are emailed when the directory makes their account or adds them to the space.",
       "Full guide in `docs/PROVISIONING.md`.",
     ],
     troubleshooting: [
@@ -246,7 +249,7 @@ export const enterprise: DocArticle[] = [
       { who: "Admins with the members area, and owners", can: "Deactivate and reactivate." },
       { who: "The person", can: "Can't lift a lock the space placed, not even by freezing and unfreezing." },
     ],
-    advanced: ["Apps receive `user.deactivated` and `membership.changed` lifecycle webhooks.", "An Identity admin can still unlock an account."],
+    advanced: ["Apps receive `user.deactivated` and `membership.changed` lifecycle webhooks.", "The person is emailed on deactivation and on reactivation.", "An Identity admin can still unlock an account."],
     troubleshooting: [{ problem: "Their account wasn't locked", solution: "Their address isn't at a verified domain of the space, so only the membership was removed." }],
     related: ["scim-provisioning", "bulk-invitations", "logout-and-webhooks"],
     sources: ["lib/directory/lifecycle.ts", "app/api/spaces/[spaceId]/directory/route.ts", "components/spaces/SpaceDirectory.tsx"],

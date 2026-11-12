@@ -82,7 +82,7 @@ export async function signLifecycleEvent(d: Pick<DeliveryDoc, "txn" | "clientId"
 
 const backoffMs = (attempts: number) => Math.min(60_000 * 2 ** attempts, 6 * 3600_000);
 
-async function attempt(d: DeliveryDoc, url: string | null) {
+async function attempt(d: DeliveryDoc, url: string | null): Promise<"delivered" | "pending" | "gave_up"> {
   const attempts = d.attempts + 1;
   let error: string | null = url ? null : "The app no longer takes lifecycle events";
   if (url) {
@@ -95,11 +95,12 @@ async function attempt(d: DeliveryDoc, url: string | null) {
   }
   const done = error === null;
   const giveUp = !done && (attempts >= MAX_ATTEMPTS || !url);
+  const outcome = done ? "delivered" : giveUp ? "gave_up" : "pending";
   await WebhookDelivery.updateOne(
     { _id: d._id },
     { $set: { attempts, lastError: error, deliveredAt: done ? new Date() : null, nextAttemptAt: done || giveUp ? null : new Date(Date.now() + backoffMs(attempts)) } },
   );
-  return done;
+  return outcome;
 }
 
 /** Which subscribed apps hear about this person (and organization). */
@@ -143,7 +144,23 @@ export async function retryLifecycleWebhooks(now = new Date()): Promise<number> 
   const due = await WebhookDelivery.find({ deliveredAt: null, nextAttemptAt: { $ne: null, $lte: now } }).limit(500).lean<DeliveryDoc[]>();
   if (due.length) {
     const urls = new Map((await OAuthClient.find({ clientId: { $in: [...new Set(due.map((d) => d.clientId))] } }).select("clientId lifecycleWebhookUri").lean()).map((c) => [c.clientId, (c.lifecycleWebhookUri as string | null) || null]));
-    for (const d of due) await attempt(d, urls.get(d.clientId) ?? null);
+    const gaveUp = new Map<string, number>();
+    for (const d of due) {
+      // Only the ones that ran out of tries; an app that took away its URL asked for that.
+      if ((await attempt(d, urls.get(d.clientId) ?? null)) === "gave_up" && urls.get(d.clientId)) gaveUp.set(d.clientId, (gaveUp.get(d.clientId) ?? 0) + 1);
+    }
+    if (gaveUp.size) {
+      const { noticeToAdmins } = await import("@/lib/notifications/notices");
+      await noticeToAdmins({
+        kind: "webhooks-gave-up",
+        subject: "Apps stopped receiving lifecycle events",
+        paragraphs: [
+          `After ${MAX_ATTEMPTS} tries over several days, these apps didn't accept lifecycle events, which are now dropped: ${[...gaveUp].map(([app, n]) => `${app} (${n} event${n === 1 ? "" : "s"})`).join(", ")}.`,
+          "They may have missed people being deactivated or deleted. Check each app's lifecycle webhook URL and logs.",
+        ],
+        action: { label: "Open apps", path: "/clients" },
+      });
+    }
   }
   return WebhookDelivery.countDocuments({ deliveredAt: null, nextAttemptAt: { $ne: null } });
 }

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-11T12:03:11.906Z",
+  "generatedAt": "2026-11-12T11:19:11.813Z",
   "articles": [
     {
       "id": "overview",
@@ -197,7 +197,7 @@
         "lib/auth/discovery.ts",
         "app/(auth)/login/LoginForm.tsx"
       ],
-      "fingerprint": "e694a16b045cdb06"
+      "fingerprint": "eba659e550dffda7"
     },
     {
       "id": "mobile-app-sign-in",
@@ -316,7 +316,7 @@
         "app/api/auth/close-account",
         "app/api/auth/delete-account/route.ts"
       ],
-      "fingerprint": "310368cc71b3b317"
+      "fingerprint": "7fb0b2a470d71ed1"
     },
     {
       "id": "devices-and-sessions",
@@ -335,7 +335,7 @@
         "app/(auth)/logout/page.tsx",
         "app/api/auth/logout/route.ts"
       ],
-      "fingerprint": "4ab647d7a09ae785"
+      "fingerprint": "319c716c186c7da1"
     },
     {
       "id": "session-length",
@@ -626,7 +626,7 @@
         "app/api/sso",
         "docs/SSO.md"
       ],
-      "fingerprint": "7a1628ae02d5d4f5"
+      "fingerprint": "19f27013c011d155"
     },
     {
       "id": "requiring-sso",
@@ -643,7 +643,7 @@
         "lib/sessions/session-service.ts",
         "lib/auth/discovery.ts"
       ],
-      "fingerprint": "1b4c2aaf338c6809"
+      "fingerprint": "63c2aff33258fe35"
     },
     {
       "id": "attribute-mapping",
@@ -659,7 +659,7 @@
         "lib/federation/presets.ts",
         "models/IdentityProvider.ts"
       ],
-      "fingerprint": "3f039a7726772c1a"
+      "fingerprint": "f2a7aa108bf1d065"
     },
     {
       "id": "federation-certificates",
@@ -674,7 +674,7 @@
         "lib/federation/certificates.ts",
         "lib/federation/providers.ts"
       ],
-      "fingerprint": "a98e77cf77bbb5d3"
+      "fingerprint": "356de1b81c4e42c4"
     },
     {
       "id": "scim-provisioning",
@@ -691,7 +691,7 @@
         "components/spaces/SpaceDirectory.tsx",
         "docs/PROVISIONING.md"
       ],
-      "fingerprint": "47c25cd822dd85ea"
+      "fingerprint": "3794df16944c756b"
     },
     {
       "id": "directory-group-sync",
@@ -706,7 +706,7 @@
         "lib/scim/groups.ts",
         "lib/scim/tokens.ts"
       ],
-      "fingerprint": "80d06c8bd93ea331"
+      "fingerprint": "751f6724fa91c90e"
     },
     {
       "id": "offboarding",
@@ -721,7 +721,7 @@
         "app/api/spaces/[spaceId]/directory/route.ts",
         "components/spaces/SpaceDirectory.tsx"
       ],
-      "fingerprint": "b087ff42811a1738"
+      "fingerprint": "ae750a92e227a477"
     },
     {
       "id": "bulk-invitations",
@@ -856,7 +856,7 @@
         "lib/account/data-export.ts",
         "docs/INTEGRATION.md"
       ],
-      "fingerprint": "4aa8b2cb8f9e4d46"
+      "fingerprint": "615510cca5f8a843"
     },
     {
       "id": "data-export-for-apps",
@@ -957,7 +957,7 @@
         "docs/compliance",
         "app/api/admin/keys/route.ts"
       ],
-      "fingerprint": "1c48dd4fd1cc5338"
+      "fingerprint": "8c0efb810cd03cd4"
     },
     {
       "id": "troubleshooting",

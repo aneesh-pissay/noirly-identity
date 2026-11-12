@@ -5,12 +5,13 @@ import { recordEvent } from "@/lib/audit/event-log";
 import { getEnv } from "@/lib/config/env";
 import { sendEmail } from "@/lib/email/email-service";
 import { buildNoticeEmail } from "@/lib/email/templates";
+import { actorLabel, noticeToSpaceOwners, noticeToUser, spaceName } from "@/lib/notifications/notices";
+import { revokeNonSsoSessions } from "@/lib/sessions/session-service";
 import { requireDomainOwner } from "@/lib/spaces/domains";
 import { IdentityProvider } from "@/models/IdentityProvider";
 import { Organization } from "@/models/Organization";
 import { OrganizationMembership } from "@/models/OrganizationMembership";
 import { Mfa, Passkey } from "@/models/SecurityCredential";
-import { Session } from "@/models/Session";
 import { User } from "@/models/User";
 
 /**
@@ -62,19 +63,41 @@ export async function setSsoEnforcement(actorId: string, spaceId: string, input:
   }
   await Organization.updateOne({ _id: space }, { $set: set });
   const result = await view(space);
+  if (input.enforced !== undefined || input.breakGlassEmails) {
+    const what = input.enforced === undefined ? "changed its break-glass accounts" : input.enforced ? "now requires single sign-on" : "no longer requires single sign-on";
+    await noticeToSpaceOwners(spaceId, {
+      kind: "sso-changed",
+      subject: `${await spaceName(spaceId)} ${what}`,
+      paragraphs: [
+        `${await actorLabel(actorId)} changed the space's single sign-on rules: it ${what}.`,
+        result.breakGlass.length ? `Break-glass accounts: ${result.breakGlass.map((b) => b.email).join(", ")}.` : "There are no break-glass accounts: if the identity provider is down, nobody at these domains can sign in.",
+      ],
+      action: { label: "Review single sign-on", path: "/spaces" },
+    });
+  }
   await recordEvent({ action: "sso.enforcement_changed", stream: orgStream(spaceId), actorId, subjectId: null, data: { organizationId: spaceId, enforced: result.enforced, breakGlass: result.breakGlass.map((b) => b.userId) } });
-  if (input.enforced) await signOutUnenforcedSessions(space, new Set(result.breakGlass.map((b) => b.userId)));
+  if (input.enforced) await signOutUnenforcedSessions(space, new Set(result.breakGlass.map((b) => b.userId)), spaceId);
   return result;
 }
 
 /** Turning enforcement on ends members' sessions that didn't come through the IdP (break-glass accounts keep theirs). */
-async function signOutUnenforcedSessions(space: Types.ObjectId, keep: Set<string>) {
+async function signOutUnenforcedSessions(space: Types.ObjectId, keep: Set<string>, spaceId: string) {
   const domains = (await IdentityProvider.find({ organizationId: space, enabled: true }).select("domains").lean()).flatMap((p) => p.domains);
   if (!domains.length) return;
   const pattern = new RegExp(`@(${domains.map((d) => d.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})$`, "i");
   const users = await User.find({ email: pattern }).select("_id").lean();
   const ids = users.map((u) => u._id).filter((id) => !keep.has(String(id)));
-  if (ids.length) await Session.updateMany({ userId: { $in: ids }, revokedAt: null, methods: { $ne: "sso" } }, { $set: { revokedAt: new Date() } });
+  // Tokens revoked and apps told, as for any sign-out; then each person hears why.
+  const signedOut = await revokeNonSsoSessions(ids);
+  const name = await spaceName(spaceId);
+  for (const userId of signedOut) {
+    await noticeToUser(userId, {
+      kind: "sso-required",
+      subject: `Sign in through ${name}'s single sign-on`,
+      paragraphs: [`${name} now requires its own sign-in for your address, so you were signed out of Noirly where you'd signed in another way. Next time, type your address on the sign-in page and you'll be sent to your organization's sign-in.`],
+      action: { label: "Sign in", path: "/login" },
+    });
+  }
 }
 
 /** The enforced provider for an address, if its domain's organization requires SSO. */

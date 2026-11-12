@@ -2,6 +2,7 @@ import { Schema, Types, model, models, type Model } from "mongoose";
 import { AppError } from "@/lib/api/errors";
 import { orgStream } from "@/lib/audit/chain";
 import { recordEvent } from "@/lib/audit/event-log";
+import { actorLabel, noticeToSpaceOwners, spaceName } from "@/lib/notifications/notices";
 import { requireDomainOwner } from "@/lib/spaces/domains";
 import { generateSecureToken, hashToken } from "@/lib/security/crypto";
 import { consumeRateLimit } from "@/lib/security/shared-rate-limit";
@@ -49,6 +50,15 @@ export async function createScimToken(actorId: string, spaceId: string, name: st
   if ((await ScimToken.countDocuments({ organizationId: space, revokedAt: null })) >= MAX_TOKENS) throw new AppError(`Up to ${MAX_TOKENS} provisioning tokens`, 400, "too_many");
   const token = `${PREFIX}${generateSecureToken(32)}`;
   const created = await ScimToken.create({ organizationId: space, name: label, tokenHash: hashToken(token), createdBy: new Types.ObjectId(actorId) });
+  await noticeToSpaceOwners(spaceId, {
+    kind: "scim-token",
+    subject: `New provisioning token in ${await spaceName(spaceId)}`,
+    paragraphs: [
+      `${await actorLabel(actorId)} made a SCIM provisioning token, “${label}”. Whoever holds it can create, change and lock accounts at the space's verified domains.`,
+      "If you didn't expect this, revoke it in the space's Directory section.",
+    ],
+    action: { label: "Review provisioning", path: "/spaces" },
+  });
   await recordEvent({ action: "directory.scim_token_created", stream: orgStream(spaceId), actorId, subjectId: null, data: { organizationId: spaceId, tokenId: String(created._id), name: label } });
   return { ...view(created.toObject() as TokenDoc), token };
 }
@@ -58,6 +68,13 @@ export async function revokeScimToken(actorId: string, spaceId: string, tokenId:
   if (!Types.ObjectId.isValid(tokenId)) throw new AppError("Token not found", 404, "not_found");
   const r = await ScimToken.updateOne({ _id: new Types.ObjectId(tokenId), organizationId: new Types.ObjectId(spaceId), revokedAt: null }, { $set: { revokedAt: new Date() } });
   if (!r.modifiedCount) throw new AppError("Token not found", 404, "not_found");
+  const revoked = await ScimToken.findById(new Types.ObjectId(tokenId)).select("name").lean();
+  await noticeToSpaceOwners(spaceId, {
+    kind: "scim-token",
+    subject: `Provisioning token revoked in ${await spaceName(spaceId)}`,
+    paragraphs: [`${await actorLabel(actorId)} revoked the SCIM provisioning token “${revoked?.name ?? "unnamed"}”. A directory still using it can no longer make changes.`],
+    action: { label: "Review provisioning", path: "/spaces" },
+  });
   await recordEvent({ action: "directory.scim_token_revoked", stream: orgStream(spaceId), actorId, subjectId: null, data: { organizationId: spaceId, tokenId } });
 }
 
