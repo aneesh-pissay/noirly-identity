@@ -21,7 +21,7 @@ function sourcesText(sources: MfaSource[]) {
 /** Signing in needs a second step: for an app (`mfaFor`) on the way back to it (`returnTo`). */
 export function SecuritySettings({ mfaFor = null, returnTo = null }: { mfaFor?: string | null; returnTo?: string | null } = {}) {
   const [settings, setSettings] = useState<Settings | null>(null);
-  const [enrollment, setEnrollment] = useState<{ secret: string; uri: string } | null>(null);
+  const [enrollment, setEnrollment] = useState<{ secret: string; uri: string; qrSvg: string } | null>(null);
   const [codes, setCodes] = useState<string[]>([]);
   const [code, setCode] = useState("");
   const [name, setName] = useState("My passkey");
@@ -94,9 +94,16 @@ export function SecuritySettings({ mfaFor = null, returnTo = null }: { mfaFor?: 
         <h3 className="font-medium">Authenticator app — {settings.totpEnabled ? "enabled" : "not enabled"}</h3>
         {!settings.totpEnabled && !enrollment && <button className={button} disabled={busy} onClick={() => void run(async () => setEnrollment(await securityRequest("/api/auth/security", { action: "totp-start" })))}>Set up authenticator</button>}
         {enrollment && <div className="space-y-3">
-          <p className="text-sm">Add this setup key in your authenticator app, then enter its six-digit code. Keep this key private.</p>
-          <code className="block break-all rounded-lg bg-[var(--surface-2)] p-3 select-all">{enrollment.secret}</code>
-          <a href={enrollment.uri} className="text-sm underline">Open authenticator app</a>
+          <p className="text-sm">Scan this code with your authenticator app, then enter the six-digit code it shows. Keep it private: anyone who scans it can make your codes.</p>
+          {/* Always dark on white, whatever the theme: phone cameras read that best. */}
+          {/* eslint-disable-next-line @next/next/no-img-element -- a data URL made on the server, nothing for next/image to optimize */}
+          <img src={enrollment.qrSvg} alt="QR code to add Noirly Identity to your authenticator app" width={192} height={192} className="rounded-lg bg-white p-2" />
+          <details className="text-sm">
+            <summary className="cursor-pointer">Can&apos;t scan it?</summary>
+            <p className="mt-2">Type this setup key into your authenticator app instead, or open the app from this device.</p>
+            <code className="mt-2 block break-all rounded-lg bg-[var(--surface-2)] p-3 select-all">{enrollment.secret}</code>
+            <a href={enrollment.uri} className="mt-2 inline-block underline">Open authenticator app</a>
+          </details>
           <FormField label="Six-digit code" value={code} onChange={(event) => setCode(event.target.value)} inputMode="numeric" autoComplete="one-time-code" maxLength={6} />
           <button className={button} disabled={busy || !/^\d{6}$/.test(code)} onClick={() => void run(async () => { const result = await securityRequest<{ recoveryCodes: string[] }>("/api/auth/security", { action: "totp-confirm", code }); setCodes(result.recoveryCodes); setEnrollment(null); setCode(""); })}>Enable authenticator</button>
         </div>}

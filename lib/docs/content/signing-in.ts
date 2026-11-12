@@ -219,7 +219,7 @@ export const signingIn: DocArticle[] = [
     ],
     steps: [
       { title: "Start", body: "Under Sign-in security choose Set up authenticator." },
-      { title: "Add the key to your app", body: "Scan the code or choose Open authenticator app, or type the setup key by hand." },
+      { title: "Add it to your app", body: "Scan the QR code with your authenticator app. Can't scan it? Open it to type the setup key by hand, or choose Open authenticator app on this device." },
       { title: "Confirm", body: "Enter the Six-digit code and choose Enable authenticator." },
       { title: "Save your recovery codes", body: "Choose Download recovery codes, store them somewhere private, then I saved my codes. They aren't shown again." },
       { title: "At sign-in", body: "On Verify your sign-in enter the Authenticator or recovery code." },
@@ -238,7 +238,7 @@ export const signingIn: DocArticle[] = [
     ],
     advanced: [
       "Authenticator codes follow RFC 6238 (TOTP); a code can't be used twice.",
-      "The setup key is stored encrypted; recovery codes are stored hashed.",
+      "The QR code is drawn by Identity itself, never by an outside service, since it carries your setup key. The key is stored encrypted; recovery codes are stored hashed.",
       "You're warned when recovery codes are running low or used up.",
       "A risky sign-in is asked for a second step even if you never set one up, with a code emailed to you.",
     ],

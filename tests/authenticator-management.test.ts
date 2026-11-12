@@ -86,3 +86,18 @@ describe("recovery codes", () => {
     }
   });
 });
+
+describe("authenticator setup", () => {
+  it("draws the QR code itself, from the same otpauth link as the setup key", async () => {
+    const { user } = await createTestUser();
+    const { secret, uri, qrSvg } = await beginTotp(String(user._id), user.email);
+    expect(uri).toMatch(/^otpauth:\/\/totp\/Noirly%20Identity:.+\?.*secret=/);
+    expect(uri).toContain(`secret=${secret}`);
+    expect(qrSvg.startsWith("data:image/svg+xml;base64,")).toBe(true);
+    const svg = Buffer.from(qrSvg.split(",")[1]!, "base64").toString("utf8");
+    expect(svg).toContain("<svg");
+    expect(svg).toContain("<path");
+    // The secret itself isn't in the image as text: it's in the QR modules.
+    expect(svg).not.toContain(secret);
+  });
+});

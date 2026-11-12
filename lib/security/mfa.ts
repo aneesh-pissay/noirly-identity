@@ -1,5 +1,6 @@
 import { randomBytes, randomInt } from "node:crypto";
 import { generateSecret, verify, generateURI } from "otplib";
+import QRCode from "qrcode";
 import { AppError } from "@/lib/api/errors";
 import { getEnv } from "@/lib/config/env";
 import { openSecret, sealSecret } from "@/lib/security/encryption";
@@ -69,7 +70,10 @@ export async function beginTotp(userId: string, email: string) {
   await Mfa.findOneAndUpdate({ userId, enabled: { $ne: true } }, {
     $set: { pendingSecret: encrypt(secret), pendingExpiresAt: new Date(Date.now() + 10 * 60_000) },
   }, { upsert: true });
-  return { secret, uri: generateURI({ issuer: "Noirly Identity", label: email, secret }) };
+  const uri = generateURI({ issuer: "Noirly Identity", label: email, secret });
+  // Drawn here, not by a QR service: the image carries the secret.
+  const qr = await QRCode.toString(uri, { type: "svg", errorCorrectionLevel: "M", margin: 2, color: { dark: "#000000", light: "#ffffff" } });
+  return { secret, uri, qrSvg: `data:image/svg+xml;base64,${Buffer.from(qr).toString("base64")}` };
 }
 
 export async function confirmTotp(userId: string, code: string) {
