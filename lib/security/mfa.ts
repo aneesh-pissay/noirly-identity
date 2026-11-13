@@ -105,7 +105,7 @@ function newRecoveryCodes(): string[] {
 /** Emails a reminder to make new recovery codes; never fails the sign-in that prompted it. */
 export async function remindRecoveryCodesLow(email: string, remaining: number) {
   try {
-    const message = buildRecoveryCodesLowEmail({ remaining, accountUrl: `${getEnv().APP_URL}/account#security-title` });
+    const message = buildRecoveryCodesLowEmail({ remaining, accountUrl: `${getEnv().APP_URL}/account/security#security-title` });
     await sendEmail({ to: email, subject: message.subject, text: message.text, html: message.html, meta: { kind: "recovery_codes_low" } });
   } catch (error) {
     console.error("Recovery code reminder not sent:", error instanceof Error ? error.message : error);

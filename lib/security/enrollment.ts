@@ -32,7 +32,7 @@ function graceEnd(now = Date.now()) {
 /** Tells someone their grace period has started; never fails what started it. */
 async function sendEnrollmentNotice(email: string, spaces: string[], until: Date) {
   try {
-    const message = buildMfaEnrollmentEmail({ spaces, days: MFA_GRACE_DAYS, until: until.toDateString(), accountUrl: `${getEnv().APP_URL}/account#security-title` });
+    const message = buildMfaEnrollmentEmail({ spaces, days: MFA_GRACE_DAYS, until: until.toDateString(), accountUrl: `${getEnv().APP_URL}/account/security#security-title` });
     await sendEmail({ to: email, subject: message.subject, text: message.text, html: message.html, meta: { kind: "mfa_enrollment" } });
   } catch (error) {
     console.error("Enrollment notice not sent:", error instanceof Error ? error.message : error);

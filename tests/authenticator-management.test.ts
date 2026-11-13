@@ -80,7 +80,7 @@ describe("recovery codes", () => {
       expect(sent.map((m) => m.to)).toEqual(["asha@example.com", "asha@example.com"]);
       expect(sent[0]!.text).toContain("only 2 recovery codes left");
       expect(sent[1]!.text).toContain("no recovery codes left");
-      expect(sent[0]!.text).toContain("/account#security-title");
+      expect(sent[0]!.text).toContain("/account/security#security-title");
     } finally {
       resetEmailProvider();
     }

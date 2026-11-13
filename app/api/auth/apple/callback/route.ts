@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
       if (payload.linkSessionId) {
         // Linking from settings: the same browser session that asked, still signed in. No new session.
         const back = (outcome: Record<string, string>) => {
-          const url = new URL("/account", env.APP_URL);
+          const url = new URL("/account/security", env.APP_URL);
           url.searchParams.set("provider", "apple");
           for (const [key, value] of Object.entries(outcome)) url.searchParams.set(key, value);
           url.hash = "sign-in-methods";

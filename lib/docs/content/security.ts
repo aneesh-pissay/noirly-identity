@@ -7,7 +7,7 @@ export const security: DocArticle[] = [
     kind: "feature",
     title: "Devices and sessions",
     summary: "See everywhere your account is signed in, and sign out any device, or every other one.",
-    location: "Account → Devices and sessions",
+    location: "Account → Devices → Devices and sessions",
     introduction:
       "Devices and sessions lists every place your account is signed in: the browser and system, roughly where (city and country), when it was last used, and which apps it has opened. This device is marked. Signing a device out also signs it out of the apps it opened.",
     problem: "A forgotten session on a shared or lost computer stays a way into every app for as long as it lasts.",
@@ -51,7 +51,7 @@ export const security: DocArticle[] = [
     kind: "feature",
     title: "How long you stay signed in",
     summary: "Choose how long an unused session lasts, and the longest any session may last.",
-    location: "Account → How long you stay signed in",
+    location: "Account → Devices → How long you stay signed in",
     introduction:
       "Two limits apply to every session on your account: one ends a session that goes unused for a while, the other ends any session a fixed time after sign-in, however busy. They apply to every device straight away, not only new sign-ins.",
     problem: "A month-long session is convenient on your own laptop and risky on any device you might lose or share.",
@@ -87,15 +87,15 @@ export const security: DocArticle[] = [
     kind: "feature",
     title: "Security activity",
     summary: "A record of sign-ins and security changes on your account, newest first.",
-    location: "Account → Security activity",
+    location: "Account → Devices → Security activity",
     introduction:
       "Security activity lists what happened on your account: sign-ins (and failed ones), new devices, changes to passwords, second steps, addresses and linked providers, and apps you've let in. Each entry says when, how, and roughly where.",
     problem: "Without a record, you can't tell whether a strange email or a new device was you.",
-    solution: "Every event is recorded in a tamper-evident log, and the account page shows yours in plain words.",
+    solution: "Every event is recorded in a tamper-evident log, and your account's Devices page shows yours in plain words.",
     highlights: ["Sign-ins, security changes, account changes and apps", "New devices marked", "Filter by kind", "Tamper-evident storage"],
     useCases: [{ title: "Checking a security email", body: "Find the matching entry: if it wasn't you, change your password and check your second steps." }],
     steps: [
-      { title: "Open it", body: "Scroll to Security activity on your account page." },
+      { title: "Open it", body: "Open Devices in your account, then Security activity." },
       { title: "Filter", body: "Use Show to pick Everything or one kind." },
       { title: "Load more", body: "Choose Show older." },
     ],
@@ -150,7 +150,7 @@ export const security: DocArticle[] = [
     kind: "feature",
     title: "Freezing your account",
     summary: "Stop everyone signing in at once if you think someone else is in your account, then unfreeze it safely.",
-    location: "Account → Freeze your account, /freeze, and every security alert",
+    location: "Account → Account → Freeze your account, /freeze, and every security alert",
     introduction:
       "Freezing is the emergency stop. Nobody can sign in, every device is signed out, and every app loses access. You can freeze from your account page, or without signing in from the link in any security alert. Unfreezing takes a day after you confirm by email, so if a stranger froze it, you have time to stop them.",
     problem: "When an account is being taken over, changing the password may already be too late: the attacker may have changed it first.",
@@ -158,7 +158,7 @@ export const security: DocArticle[] = [
     highlights: ["Works without signing in", "Signs out everything and cuts off apps", "Unfreeze waits 24 hours after email confirmation", "You can cancel an unfreeze you didn't ask for"],
     useCases: [{ title: "Phone stolen while signed in", body: "Freeze from another device; the thief's sessions end at once." }],
     steps: [
-      { title: "Freeze", body: "Choose Freeze my account on your account page, or Freeze my account now from an alert's link." },
+      { title: "Freeze", body: "Choose Freeze my account under Account in your account, or Freeze my account now from an alert's link." },
       { title: "Ask to unfreeze", body: "Go to Unfreeze your account, enter Your account's email and choose Email me a link." },
       { title: "Confirm", body: "Open the link and choose Unfreeze my account. It unfreezes a day later." },
       { title: "Didn't ask?", body: "Choose No, keep it frozen on the link's page." },
@@ -186,7 +186,7 @@ export const security: DocArticle[] = [
     kind: "feature",
     title: "Recovery address and phone",
     summary: "An address (or phone) used only to prove it's you if you lose your second step.",
-    location: "Account → Recovery address and phone",
+    location: "Account → Security → Recovery address and phone",
     introduction:
       "A recovery address is a separate email address you don't sign in with. If you ever lose your authenticator and passkeys, a code sent there proves it's you and shortens the wait to remove them. It's never used to sign in, and apps never see it.",
     problem: "Losing your second step shouldn't lock you out for good, but the way back mustn't be easy for an attacker either.",

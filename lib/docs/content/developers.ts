@@ -44,7 +44,7 @@ export const developers: DocArticle[] = [
       { title: "A leaked secret", body: "Rotate it and revoke machine tokens at once." },
     ],
     steps: [
-      { title: "Open OAuth clients", body: "From the account page." },
+      { title: "Open OAuth clients", body: "In your account, choose Apps and APIs (or Your apps) in the sidebar." },
       { title: "Register", body: "Enter App name, Client ID, Client type, App origins and Redirect URIs, then Generate client." },
       { title: "Copy the secret", body: "It's shown once; copy the env values." },
       { title: "Edit later", body: "Choose Edit app to change redirects, logout URIs, owners or who may use it." },

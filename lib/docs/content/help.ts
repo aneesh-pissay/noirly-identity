@@ -22,7 +22,7 @@ export const help: DocArticle[] = [
       { question: "Can Noirly staff see my password?", answer: "No. Passwords are stored only as Argon2 hashes." },
       { question: "Why does a change ask me to sign in again?", answer: "Security changes need a sign-in within the last five minutes, so an unlocked computer isn't enough to take over the account." },
       { question: "Is there a light theme?", answer: "Yes: the switch at the top right of every page, with a choice of accent colours." },
-      { question: "Where's the privacy policy?", answer: "At `/privacy`, linked from every page's footer and the account page." },
+      { question: "Where's the privacy policy?", answer: "At `/privacy`, linked from every page's footer and the account's Privacy and apps page." },
     ],
     related: ["signing-in", "losing-your-second-step", "freezing-your-account", "single-sign-on"],
     sources: ["app/(auth)/login", "app/(auth)/no-access/page.tsx", "lib/security/rate-limit.ts", "app/privacy/page.tsx"],

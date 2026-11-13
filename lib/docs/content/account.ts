@@ -7,7 +7,7 @@ export const account: DocArticle[] = [
     kind: "feature",
     title: "Profile and photo",
     summary: "Your name, display name and photo, shown in every Noirly app you allow.",
-    location: "Account → top of the page",
+    location: "Account → Personal info → Name and photo",
     introduction:
       "Your profile is what apps show for you: first name, last name, a display name and a photo. Change them once here and every Noirly app follows. A badge shows whether your email is Verified and how you signed up.",
     problem: "Updating your name or photo in each app separately leaves old ones scattered around.",
@@ -42,7 +42,7 @@ export const account: DocArticle[] = [
       { problem: "An app still shows the old name", solution: "Apps refresh your profile when you next sign in to them, or when they next ask Identity." },
     ],
     related: ["email-addresses", "phone-number", "preferences", "connected-apps"],
-    sources: ["components/AccountSettings.tsx", "components/AvatarPicker.tsx", "lib/account/avatar.ts", "app/api/auth/me/route.ts", "app/api/auth/avatar"],
+    sources: ["app/(app)/account/profile/page.tsx", "components/account/ProfileForm.tsx", "components/AvatarPicker.tsx", "lib/account/avatar.ts", "app/api/auth/me/route.ts", "app/api/auth/avatar"],
     keywords: ["name", "avatar", "picture", "display name", "profile"],
     video: { scenario: "profile-and-photo" },
   },
@@ -52,7 +52,7 @@ export const account: DocArticle[] = [
     kind: "feature",
     title: "Email addresses",
     summary: "Add addresses, confirm them, choose the primary one, and undo a change you didn't make.",
-    location: "Account → Email addresses",
+    location: "Account → Personal info → Email addresses",
     introduction:
       "An account can have several email addresses. One is primary: sign-in links and security notices go there, and it's the address apps see. Others can be made primary once confirmed. When the primary address changes, the old one gets a link to undo it for seven days.",
     problem: "Changing jobs or providers shouldn't mean a new account, and a changed address shouldn't be a way to steal one.",
@@ -99,7 +99,7 @@ export const account: DocArticle[] = [
     kind: "feature",
     title: "Phone number",
     summary: "Add and verify a phone number. It helps confirm it's you, but never signs you in.",
-    location: "Account → Phone number",
+    location: "Account → Personal info → Phone number",
     introduction:
       "You can add a phone number and verify it with a texted code. A verified number helps Identity reach you about your account's security. It is never a way to sign in by itself, because phone numbers are too easy to take over.",
     problem: "Texted codes as a sign-in factor fall to SIM swaps; but having no number on file leaves fewer ways to confirm it's really you.",
@@ -136,7 +136,7 @@ export const account: DocArticle[] = [
     kind: "feature",
     title: "Language, time and accessibility",
     summary: "Tell every Noirly app your language, time zone, and how you like text, contrast and motion.",
-    location: "Account → Language, time and accessibility",
+    location: "Account → Personal info → Language, time and accessibility",
     introduction:
       "These settings travel with your account. Apps use your language and region for dates and numbers, your time zone for times, and your accessibility choices for text size, contrast and motion. Leave a setting on your device's to follow whichever device you're on.",
     problem: "Setting the language, time zone and larger text again in every app, on every device, is tedious, and easy to miss in one.",
@@ -173,7 +173,7 @@ export const account: DocArticle[] = [
     kind: "feature",
     title: "Merging two accounts",
     summary: "Bring a second Noirly account's sign-ins, addresses and spaces into this one, and close the other.",
-    location: "Account → Merge another account into this one",
+    location: "Account → Account → Merge another account into this one",
     introduction:
       "If you ended up with two Noirly accounts, merge them. You start from the account you want to keep, name the other by its email address, and confirm from that address's inbox. You're then shown exactly what comes across and what doesn't before anything happens.",
     problem: "Two accounts mean two sets of spaces and invitations going to the wrong one. Deleting one loses what it had.",
@@ -215,7 +215,7 @@ export const account: DocArticle[] = [
     kind: "feature",
     title: "Closing your account",
     summary: "Close your account with a 14-day window to change your mind, after which it's deleted everywhere.",
-    location: "Account → Delete account",
+    location: "Account → Account → Close your account",
     introduction:
       "Closing an account locks it at once and deletes it after 14 days. During those days a link in the email Identity sends lets you keep it. After them, the account and everything Identity holds about it are deleted, and every Noirly app is told to delete its data too.",
     problem: "Deleting by mistake, or having someone else delete your account, shouldn't be permanent in one click. But a real deletion should actually reach every app.",

@@ -390,7 +390,7 @@ export async function flagIfBreached(userId: string, password: string) {
         "The password you signed in with has appeared in a data breach somewhere else. Anyone with that list could try it on your Noirly account.",
         "Change it now, and turn on a passkey or an authenticator app if you haven't.",
       ],
-      action: { label: "Change your password", url: new URL("/account", getEnv().APP_URL).toString() },
+      action: { label: "Change your password", url: new URL("/account/security#password", getEnv().APP_URL).toString() },
     }),
     meta: { kind: "password-breached" },
   });

@@ -9,9 +9,9 @@ export const signingIn: DocArticle[] = [
     kind: "feature",
     title: "Passwords",
     summary: "Change your password, reset one you've forgotten, or do without a password altogether.",
-    location: "Account → Password, and Forgot password on the sign-in page",
+    location: "Account → Security → Password, and Forgot password on the sign-in page",
     introduction:
-      "A password is one way to sign in, not the only one. You can change it on your account page with your current password, reset it by email if you've forgotten it, add one to an account that signed up with Google, or remove it once you have a passkey or provider to rely on.",
+      "A password is one way to sign in, not the only one. You can change it under Security in your account with your current password, reset it by email if you've forgotten it, add one to an account that signed up with Google, or remove it once you have a passkey or provider to rely on.",
     problem: "Passwords get reused and leaked. A service that accepts any password, and never says when one has turned up in a breach, leaves its accounts one leak away from takeover.",
     solution:
       "Identity checks every new password against known breaches, signs out your other devices when the password changes, and warns you if a password you already use later appears in a breach. Passwords are stored only as Argon2 hashes.",
@@ -60,7 +60,7 @@ export const signingIn: DocArticle[] = [
     kind: "feature",
     title: "Passkeys and security keys",
     summary: "Sign in with your fingerprint, face or device PIN, or a hardware key, instead of typing anything.",
-    location: "Account → Sign-in security → Passkeys and security keys",
+    location: "Account → Security → Sign-in security → Passkeys and security keys",
     introduction:
       "A passkey is a key pair your device keeps for you. To sign in you unlock it with your fingerprint, face or device PIN; nothing secret is typed or sent. A passkey that checks you that way is a complete sign-in by itself. A hardware security key that can't check a PIN works as a second step after your password.",
     problem: "Passwords and texted codes can be phished: a convincing fake page collects both. People also lose access when a single device breaks.",
@@ -111,7 +111,7 @@ export const signingIn: DocArticle[] = [
     kind: "feature",
     title: "Google and other providers",
     summary: "Sign in with an account you already have at Google, Apple, Microsoft or GitHub, and link or unlink them.",
-    location: "Sign-in page, and Account → Ways to sign in",
+    location: "Sign-in page, and Account → Security → Ways to sign in",
     introduction:
       "Instead of a password you can sign in with a provider. The first time, Identity finds your Noirly account by the address the provider has confirmed, or makes one. After that the provider is linked: it appears under Ways to sign in, where you can link others or unlink it. Which providers are offered depends on how this Identity is set up.",
     problem: "Another password to remember is one more to forget or reuse.",
@@ -205,7 +205,7 @@ export const signingIn: DocArticle[] = [
     kind: "feature",
     title: "Two-step verification",
     summary: "Add an authenticator app, recovery codes or a passkey so a stolen password isn't enough.",
-    location: "Account → Sign-in security",
+    location: "Account → Security → Sign-in security",
     introduction:
       "With a second step, signing in takes something you know and something you have. Set up an authenticator app (it shows a six-digit code that changes every 30 seconds), or add a passkey or security key. Identity gives you recovery codes for the day your phone isn't with you.",
     problem: "Passwords leak. Without a second step, whoever has the password has the account, and every app behind it.",
@@ -258,7 +258,7 @@ export const signingIn: DocArticle[] = [
     kind: "feature",
     title: "Ways to sign in",
     summary: "One list of every way into your account, with what can be added and what can't be removed.",
-    location: "Account → Ways to sign in",
+    location: "Account → Security → Ways to sign in",
     introduction:
       "Ways to sign in lists your password, passkeys, the emailed sign-in link and each provider, with what's set up and what isn't. It's the place to add a spare way in, and to remove ones you no longer use. Your only way in can't be removed.",
     problem: "People find out they had a single way to sign in on the day they lose it.",

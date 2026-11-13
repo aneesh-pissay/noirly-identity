@@ -7,7 +7,7 @@ export const privacy: DocArticle[] = [
     kind: "feature",
     title: "Your privacy page",
     summary: "What Noirly Identity holds about you, why it holds it, and how long it keeps it.",
-    location: "Account → Privacy (/account/privacy)",
+    location: "Account → Privacy and apps (/account/privacy)",
     introduction:
       "The privacy page lists every kind of data Identity holds about your account, with how much of it there is, why it's kept, and for how long: your profile, addresses, phone, recovery address, ways to sign in, photo, signed-in devices, sign-in history, apps you've let in, spaces, and security activity. Below that are your data export and the apps using your account.",
     problem: "Privacy policies describe data in general; they don't tell you what's actually held about you.",
@@ -44,7 +44,7 @@ export const privacy: DocArticle[] = [
     kind: "feature",
     title: "Apps using your account",
     summary: "Every app that has signed you in, what it can see, and a way to remove its access.",
-    location: "Privacy → Apps using your account",
+    location: "Account → Privacy and apps → Apps using your account",
     introduction:
       "Each app that has signed you in is listed with what it can see about you, when it first did, and when it last looked. Signed in now means it has a live session. You can sign out of one app and stay signed in to the rest, or remove its access altogether.",
     problem: "Apps you tried once keep access to your details long after you've forgotten them.",
@@ -106,7 +106,7 @@ export const privacy: DocArticle[] = [
     kind: "feature",
     title: "Getting your data",
     summary: "One download with what Identity and every Noirly app you use hold about you.",
-    location: "Privacy → Your data from every Noirly app",
+    location: "Account → Privacy and apps → Your data from every Noirly app",
     introduction:
       "Get my data asks Identity and each Noirly app you've used for what they hold about you. Identity's part is ready at once; apps answer within minutes. When everything is in, you're emailed, and the download is on your privacy page for a week.",
     problem: "Asking every app separately for your data is slow, and each answers in its own format, if at all.",

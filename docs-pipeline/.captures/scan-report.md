@@ -1,30 +1,32 @@
-# Docs scan — 2026-11-12T11:19:11.813Z
+# Docs scan — 2026-11-13T03:07:41.064Z
 
 58 articles (49 feature pages). Videos: 0 of 36 recordable; 22 marked unavailable.
-Compared with the inventory written 2026-11-11T12:03:11.906Z.
+Compared with the inventory written 2026-11-12T11:19:11.813Z.
 
-## Articles whose sources changed — review the text (12)
+## Articles whose sources changed — review the text (9)
 
-- single-sign-on
-- closing-your-account
-- devices-and-sessions
-- sso-setup
-- requiring-sso
-- attribute-mapping
-- federation-certificates
-- scim-provisioning
-- directory-group-sync
-- offboarding
-- logout-and-webhooks
-- compliance-evidence
+- overview
+- your-account-page
+- passkeys
+- sign-in-providers
+- two-step-verification
+- profile-and-photo
+- losing-your-second-step
+- privacy-dashboard
+- integrating-an-app
 
 ## Articles with missing source files — feature removed or moved? (0)
 
 _none_
 
-## Code surfaces no article covers — possibly undocumented features (0)
+## Code surfaces no article covers — possibly undocumented features (6)
 
-_none_
+- app/(app)/account/devices/page.tsx
+- app/(app)/account/manage/page.tsx
+- app/(app)/account/security/page.tsx
+- components/account/AccountPageHeader.tsx
+- components/account/HashForward.tsx
+- components/account/PasswordForm.tsx
 
 ## Deliberately not documented (19)
 

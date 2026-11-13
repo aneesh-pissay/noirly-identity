@@ -243,7 +243,7 @@ async function handleAuthorize(request: NextRequest) {
           spacePolicy = false;
           const firstTime = await Session.updateOne({ _id: session.session._id, mfaNudgedAt: null }, { $set: { mfaNudgedAt: new Date() } });
           if (firstTime.modifiedCount === 1 && params.prompt !== "none") {
-            const nudge = new URL("/account", getEnv().APP_URL);
+            const nudge = new URL("/account/security", getEnv().APP_URL);
             nudge.searchParams.set("enroll", "grace");
             nudge.searchParams.set("return_to", authorizeUrl);
             nudge.hash = "security-title";
@@ -259,7 +259,7 @@ async function handleAuthorize(request: NextRequest) {
         if (factorCount(await factorCounts(session.userId)) === 0) {
           // Required: the person sets one up, then carries on to the app.
           if (policy) {
-            const setUp = new URL("/account", getEnv().APP_URL);
+            const setUp = new URL("/account/security", getEnv().APP_URL);
             if (validated.client.requireMfa) setUp.searchParams.set("mfa_for", validated.client.clientId);
             // The grace period is over: apps stay closed until one is set up.
             if (overdue) setUp.searchParams.set("enroll", "overdue");

@@ -21,7 +21,7 @@ export function LostFactor({ returnTo }: { returnTo: string | null }) {
     try {
       if (action === "finish") {
         await securityRequest("/api/auth/recovery", { action });
-        goReturnTo(returnTo ?? "/account#security-title");
+        goReturnTo(returnTo ?? "/account/security#security-title");
         return;
       }
       if (action === "send-code") {

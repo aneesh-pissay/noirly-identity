@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-12T11:19:11.813Z",
+  "generatedAt": "2026-11-13T03:07:41.064Z",
   "articles": [
     {
       "id": "overview",
@@ -14,7 +14,7 @@
         "app/page.tsx",
         "README.md"
       ],
-      "fingerprint": "ea8ea7f367f88a52"
+      "fingerprint": "0a609d81dad61fdc"
     },
     {
       "id": "creating-an-account",
@@ -65,17 +65,19 @@
       "verified": false,
       "sources": [
         "app/(app)/account/page.tsx",
-        "components/AccountSettings.tsx",
+        "app/(app)/account/layout.tsx",
+        "components/account/AccountNav.tsx",
+        "lib/account/overview.ts",
         "components/ThemeControls.tsx"
       ],
-      "fingerprint": "14441ee7140f41fc"
+      "fingerprint": "35991e20808aad3c"
     },
     {
       "id": "passwords",
       "title": "Passwords",
       "category": "signing-in",
       "kind": "feature",
-      "location": "Account → Password, and Forgot password on the sign-in page",
+      "location": "Account → Security → Password, and Forgot password on the sign-in page",
       "video": "missing",
       "verified": false,
       "sources": [
@@ -95,7 +97,7 @@
       "title": "Passkeys and security keys",
       "category": "signing-in",
       "kind": "feature",
-      "location": "Account → Sign-in security → Passkeys and security keys",
+      "location": "Account → Security → Sign-in security → Passkeys and security keys",
       "video": "unavailable",
       "unavailableReason": "Passkey prompts are drawn by the browser and operating system, outside the page, so they can't be recorded faithfully.",
       "verified": false,
@@ -105,14 +107,14 @@
         "components/security/SecuritySettings.tsx",
         "app/api/auth/security"
       ],
-      "fingerprint": "838861bf8229c4fe"
+      "fingerprint": "e81dcf9eaa59dd76"
     },
     {
       "id": "sign-in-providers",
       "title": "Google and other providers",
       "category": "signing-in",
       "kind": "feature",
-      "location": "Sign-in page, and Account → Ways to sign in",
+      "location": "Sign-in page, and Account → Security → Ways to sign in",
       "video": "unavailable",
       "unavailableReason": "Signing in with a provider happens on the provider's own pages with a real account there, which can't be recorded safely.",
       "verified": false,
@@ -129,7 +131,7 @@
         "app/api/auth/oauth",
         "app/api/auth/oauth-providers/route.ts"
       ],
-      "fingerprint": "b2dd7438f67a4cde"
+      "fingerprint": "9f59c8e32482f388"
     },
     {
       "id": "email-sign-in-links",
@@ -152,7 +154,7 @@
       "title": "Two-step verification",
       "category": "signing-in",
       "kind": "feature",
-      "location": "Account → Sign-in security",
+      "location": "Account → Security → Sign-in security",
       "video": "missing",
       "verified": false,
       "sources": [
@@ -165,14 +167,14 @@
         "app/api/auth/mfa",
         "app/api/auth/step-up/route.ts"
       ],
-      "fingerprint": "dc776003ffe8bdd8"
+      "fingerprint": "bd8584ccfad1159e"
     },
     {
       "id": "ways-to-sign-in",
       "title": "Ways to sign in",
       "category": "signing-in",
       "kind": "feature",
-      "location": "Account → Ways to sign in",
+      "location": "Account → Security → Ways to sign in",
       "video": "missing",
       "verified": false,
       "sources": [
@@ -221,24 +223,25 @@
       "title": "Profile and photo",
       "category": "account",
       "kind": "feature",
-      "location": "Account → top of the page",
+      "location": "Account → Personal info → Name and photo",
       "video": "missing",
       "verified": false,
       "sources": [
-        "components/AccountSettings.tsx",
+        "app/(app)/account/profile/page.tsx",
+        "components/account/ProfileForm.tsx",
         "components/AvatarPicker.tsx",
         "lib/account/avatar.ts",
         "app/api/auth/me/route.ts",
         "app/api/auth/avatar"
       ],
-      "fingerprint": "59faa3553317f962"
+      "fingerprint": "b43cf403132dd93d"
     },
     {
       "id": "email-addresses",
       "title": "Email addresses",
       "category": "account",
       "kind": "feature",
-      "location": "Account → Email addresses",
+      "location": "Account → Personal info → Email addresses",
       "video": "missing",
       "verified": false,
       "sources": [
@@ -255,7 +258,7 @@
       "title": "Phone number",
       "category": "account",
       "kind": "feature",
-      "location": "Account → Phone number",
+      "location": "Account → Personal info → Phone number",
       "video": "unavailable",
       "unavailableReason": "Verifying a number sends a real text message, which the isolated capture server has no way to receive.",
       "verified": false,
@@ -271,7 +274,7 @@
       "title": "Language, time and accessibility",
       "category": "account",
       "kind": "feature",
-      "location": "Account → Language, time and accessibility",
+      "location": "Account → Personal info → Language, time and accessibility",
       "video": "missing",
       "verified": false,
       "sources": [
@@ -285,7 +288,7 @@
       "title": "Merging two accounts",
       "category": "account",
       "kind": "feature",
-      "location": "Account → Merge another account into this one",
+      "location": "Account → Account → Merge another account into this one",
       "video": "missing",
       "verified": false,
       "sources": [
@@ -303,7 +306,7 @@
       "title": "Closing your account",
       "category": "account",
       "kind": "feature",
-      "location": "Account → Delete account",
+      "location": "Account → Account → Close your account",
       "video": "missing",
       "verified": false,
       "sources": [
@@ -323,7 +326,7 @@
       "title": "Devices and sessions",
       "category": "security",
       "kind": "feature",
-      "location": "Account → Devices and sessions",
+      "location": "Account → Devices → Devices and sessions",
       "video": "missing",
       "verified": false,
       "sources": [
@@ -342,7 +345,7 @@
       "title": "How long you stay signed in",
       "category": "security",
       "kind": "feature",
-      "location": "Account → How long you stay signed in",
+      "location": "Account → Devices → How long you stay signed in",
       "video": "missing",
       "verified": false,
       "sources": [
@@ -357,7 +360,7 @@
       "title": "Security activity",
       "category": "security",
       "kind": "feature",
-      "location": "Account → Security activity",
+      "location": "Account → Devices → Security activity",
       "video": "missing",
       "verified": false,
       "sources": [
@@ -388,7 +391,7 @@
       "title": "Freezing your account",
       "category": "security",
       "kind": "feature",
-      "location": "Account → Freeze your account, /freeze, and every security alert",
+      "location": "Account → Account → Freeze your account, /freeze, and every security alert",
       "video": "missing",
       "verified": false,
       "sources": [
@@ -405,7 +408,7 @@
       "title": "Recovery address and phone",
       "category": "security",
       "kind": "feature",
-      "location": "Account → Recovery address and phone",
+      "location": "Account → Security → Recovery address and phone",
       "video": "missing",
       "verified": false,
       "sources": [
@@ -429,14 +432,14 @@
         "app/api/auth/recovery",
         "app/(auth)/cancel-recovery/page.tsx"
       ],
-      "fingerprint": "b6982e8e5abc05ef"
+      "fingerprint": "b749e6d04d33be9a"
     },
     {
       "id": "privacy-dashboard",
       "title": "Your privacy page",
       "category": "privacy",
       "kind": "feature",
-      "location": "Account → Privacy (/account/privacy)",
+      "location": "Account → Privacy and apps (/account/privacy)",
       "video": "missing",
       "verified": false,
       "sources": [
@@ -445,14 +448,14 @@
         "app/api/auth/privacy/route.ts",
         "app/api/auth/export"
       ],
-      "fingerprint": "a4af6c3c4cce156e"
+      "fingerprint": "3860d16ea4ed1b97"
     },
     {
       "id": "connected-apps",
       "title": "Apps using your account",
       "category": "privacy",
       "kind": "feature",
-      "location": "Privacy → Apps using your account",
+      "location": "Account → Privacy and apps → Apps using your account",
       "video": "missing",
       "verified": false,
       "sources": [
@@ -484,7 +487,7 @@
       "title": "Getting your data",
       "category": "privacy",
       "kind": "feature",
-      "location": "Privacy → Your data from every Noirly app",
+      "location": "Account → Privacy and apps → Your data from every Noirly app",
       "video": "missing",
       "verified": false,
       "sources": [
@@ -769,7 +772,7 @@
         "app/api/oauth",
         "app/api/oidc"
       ],
-      "fingerprint": "1672e58368a434aa"
+      "fingerprint": "580e6abdc0dae62b"
     },
     {
       "id": "registering-an-app",
@@ -979,8 +982,12 @@
   ],
   "discovered": {
     "pages": [
+      "app/(app)/account/devices/page.tsx",
+      "app/(app)/account/manage/page.tsx",
       "app/(app)/account/page.tsx",
       "app/(app)/account/privacy/page.tsx",
+      "app/(app)/account/profile/page.tsx",
+      "app/(app)/account/security/page.tsx",
       "app/(app)/admin/audit/page.tsx",
       "app/(app)/admin/claims/page.tsx",
       "app/(app)/admin/deletions/page.tsx",
@@ -1133,7 +1140,6 @@
       "app/api/sso/start/route.ts"
     ],
     "featureModules": [
-      "components/AccountSettings.tsx",
       "components/AdminAudit.tsx",
       "components/AdminClaims.tsx",
       "components/AdminDeletions.tsx",
@@ -1155,6 +1161,11 @@
       "components/ThemePicker.tsx",
       "components/ThemeProvider.tsx",
       "components/ThemeToggle.tsx",
+      "components/account/AccountNav.tsx",
+      "components/account/AccountPageHeader.tsx",
+      "components/account/HashForward.tsx",
+      "components/account/PasswordForm.tsx",
+      "components/account/ProfileForm.tsx",
       "components/auth-ui.tsx",
       "components/security/ConnectedApps.tsx",
       "components/security/DataExports.tsx",
@@ -1184,5 +1195,12 @@
     "settingsSections": [],
     "e2eSpecs": []
   },
-  "uncovered": []
+  "uncovered": [
+    "app/(app)/account/devices/page.tsx",
+    "app/(app)/account/manage/page.tsx",
+    "app/(app)/account/security/page.tsx",
+    "components/account/AccountPageHeader.tsx",
+    "components/account/HashForward.tsx",
+    "components/account/PasswordForm.tsx"
+  ]
 }

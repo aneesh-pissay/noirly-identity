@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
         const { ctx } = await withDb(() => securitySession(true));
         linkSessionId = ctx.session._id.toString();
       } catch (error) {
-        const url = new URL("/account", env.APP_URL);
+        const url = new URL("/account/security", env.APP_URL);
         url.searchParams.set("provider", "apple");
         url.searchParams.set("link_error", error instanceof AppError && error.code === "reauth_required" ? "reauth_required" : "unauthorized");
         url.hash = "sign-in-methods";

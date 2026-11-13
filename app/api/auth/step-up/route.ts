@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
         challenge = await startStepUp(ctx);
       } catch (error) {
         if (!(error instanceof AppError)) throw error;
-        const account = new URL("/account", env.APP_URL);
+        const account = new URL("/account/security", env.APP_URL);
         account.hash = "security-title";
         return redirectGet(account);
       }

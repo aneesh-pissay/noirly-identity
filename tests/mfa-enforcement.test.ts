@@ -78,7 +78,7 @@ describe("apps and spaces that require a second step", () => {
     await signIn(user._id, ["password"]);
 
     const setUp = where(await authorize(new NextRequest(authorizeUrl(client.clientId, client.redirectUris[0]!))));
-    expect(setUp.pathname).toBe("/account");
+    expect(setUp.pathname).toBe("/account/security");
     expect(setUp.searchParams.get("mfa_for")).toBe(client.clientId);
     expect(setUp.searchParams.get("return_to")).toContain("/api/oauth/authorize");
 
@@ -131,7 +131,7 @@ describe("getting a second step set up", () => {
     await spaceWith([[user._id, "member"]], true);
     await signIn(user._id, ["password"]);
     const nudge = where(await authorize(new NextRequest(authorizeUrl(client.clientId, client.redirectUris[0]!))));
-    expect(nudge.pathname).toBe("/account");
+    expect(nudge.pathname).toBe("/account/security");
     expect(nudge.searchParams.get("enroll")).toBe("grace");
     // "Not now": the same session goes on to the app.
     expect(where(await authorize(new NextRequest(authorizeUrl(client.clientId, client.redirectUris[0]!)))).searchParams.get("code")).toBeTruthy();
@@ -144,7 +144,7 @@ describe("getting a second step set up", () => {
     await User.updateOne({ _id: user._id }, { $set: { mfaGraceUntil: new Date(Date.now() - 1000) } });
     await signIn(user._id, ["password"]);
     const blocked = where(await authorize(new NextRequest(authorizeUrl(client.clientId, client.redirectUris[0]!))));
-    expect(blocked.pathname).toBe("/account");
+    expect(blocked.pathname).toBe("/account/security");
     expect(blocked.searchParams.get("enroll")).toBe("overdue");
     expect(await enrollmentState(user._id)).toMatchObject({ state: "overdue" });
     // Set one up: the grace date is cleared, and the app asks for it.

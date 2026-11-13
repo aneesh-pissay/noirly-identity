@@ -6,7 +6,8 @@ function configuredOrigin(value: string | undefined): string {
 }
 
 /** Pages that sign this browser out, and so may frame any app's logout URL. */
-const FRONTCHANNEL_PAGES = new Set(["/logout", "/account"]);
+/** Pages that can sign out (the account sidebar is on every /account page), so may load apps' front-channel logout frames. */
+const isFrontchannelPage = (pathname: string) => pathname === "/logout" || pathname === "/account" || pathname.startsWith("/account/");
 
 export function securePageResponse(request: NextRequest) {
   const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
@@ -22,7 +23,7 @@ export function securePageResponse(request: NextRequest) {
     "font-src 'self' data: https://fonts.gstatic.com",
     `connect-src 'self' https://accounts.google.com ${identity} ${realtime}${isDev ? " ws: http://localhost:*" : ""}`,
     // Sign-out pages load apps' front-channel logout URLs in hidden frames (lib/oidc/frontchannel-client.ts).
-    FRONTCHANNEL_PAGES.has(request.nextUrl.pathname) ? `frame-src https:${isDev ? " http://localhost:* http://127.0.0.1:*" : ""}` : "frame-src https://accounts.google.com",
+    isFrontchannelPage(request.nextUrl.pathname) ? `frame-src https:${isDev ? " http://localhost:* http://127.0.0.1:*" : ""}` : "frame-src https://accounts.google.com",
     "object-src 'none'", "base-uri 'self'", "frame-ancestors 'none'",
     `form-action 'self' https://accounts.google.com ${identity}`,
     ...(isDev ? [] : ["upgrade-insecure-requests"]),
