@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { FormField } from "@/components/auth-ui";
 import type { PhoneState } from "@/lib/account/phone";
-import { securityRequest } from "./client";
+import { needsFreshSignIn, reauthHref, securityRequest } from "./client";
 
 const button = "rounded-xl border border-[var(--hairline)] px-3 py-2 text-sm focus-visible:outline-2 disabled:opacity-50";
 
@@ -13,6 +13,7 @@ export function PhoneNumber() {
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  const [reauth, setReauth] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -26,24 +27,32 @@ export function PhoneNumber() {
   async function run(body: Record<string, unknown>, done: string) {
     setBusy(true);
     setMessage("");
+    setReauth(false);
     try {
       setState(await securityRequest<PhoneState>("/api/auth/phone", body));
       setMessage(done);
       return true;
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Request failed");
+      setReauth(needsFreshSignIn(error));
       return false;
     } finally {
       setBusy(false);
     }
   }
 
+  // Texting codes isn't switched on: no phone section at all, unless there's an old number to remove.
   if (state && !state.available && !state.phone) return null;
 
   return <section aria-labelledby="phone-title" className="mx-auto my-8 w-full max-w-3xl space-y-5 rounded-2xl border border-[var(--hairline)] p-6">
     <h2 id="phone-title" className="text-xl font-semibold">Phone number</h2>
     <p className="text-sm opacity-75">Optional. A verified number can help confirm it&apos;s you later, but it&apos;s never a way to sign in on its own: phone numbers are too easy to take over. Sending a code needs a sign-in within the last five minutes.</p>
-    {message && <p role="status" className="text-sm">{message}</p>}
+    {message && (
+      <p role="status" className="text-sm">
+        {message}
+        {reauth ? <> <a href={reauthHref("/account/profile")} className="font-medium underline">Sign in again</a>, then come back here.</> : null}
+      </p>
+    )}
     {!state ? <p role="status">Loading…</p> : <>
       {state.phone && (
         <div className="flex flex-wrap items-center justify-between gap-2">

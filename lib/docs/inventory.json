@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-13T03:07:41.064Z",
+  "generatedAt": "2026-11-13T03:35:48.297Z",
   "articles": [
     {
       "id": "overview",
@@ -107,7 +107,7 @@
         "components/security/SecuritySettings.tsx",
         "app/api/auth/security"
       ],
-      "fingerprint": "e81dcf9eaa59dd76"
+      "fingerprint": "4853f9de10a7f5a1"
     },
     {
       "id": "sign-in-providers",
@@ -167,7 +167,7 @@
         "app/api/auth/mfa",
         "app/api/auth/step-up/route.ts"
       ],
-      "fingerprint": "bd8584ccfad1159e"
+      "fingerprint": "66ab8fd3a8ce2a7b"
     },
     {
       "id": "ways-to-sign-in",
@@ -267,7 +267,7 @@
         "lib/account/phone.ts",
         "app/api/auth/phone"
       ],
-      "fingerprint": "c6ea35a7e3de8d3e"
+      "fingerprint": "93aa472bee1fae37"
     },
     {
       "id": "preferences",
@@ -408,7 +408,7 @@
       "title": "Recovery address and phone",
       "category": "security",
       "kind": "feature",
-      "location": "Account → Security → Recovery address and phone",
+      "location": "Account → Security → Recovery address",
       "video": "missing",
       "verified": false,
       "sources": [
@@ -416,7 +416,7 @@
         "lib/account/recovery-methods.ts",
         "app/api/auth/recovery-methods"
       ],
-      "fingerprint": "a4262dffd6ba2d1c"
+      "fingerprint": "86b4b9f369aaeb45"
     },
     {
       "id": "losing-your-second-step",

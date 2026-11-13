@@ -145,7 +145,7 @@ export const gettingStarted: DocArticle[] = [
     steps: [
       { title: "Home", body: "The security checkup and a card per area with a one-line summary, such as whether your second step is on." },
       { title: "Personal info", body: "Name and photo (First name, Last name, Display name, Phone, then Save profile), Email addresses, Phone number, and Language, time and accessibility." },
-      { title: "Security", body: "Sign-in security (authenticator app, recovery codes, passkeys and security keys), Ways to sign in, Password, and Recovery address and phone." },
+      { title: "Security", body: "Sign-in security (authenticator app, recovery codes, passkeys and security keys), Ways to sign in, Password, and Recovery address." },
       { title: "Devices", body: "Devices and sessions with Sign out for each, How long you stay signed in, and Security activity." },
       { title: "Privacy and apps", body: "Apps using your account, What Identity keeps (with Download what Identity keeps), and your data from every Noirly app." },
       { title: "Account", body: "Your spaces, admin tools or your apps, Merge another account into this one, Freeze your account, and Close your account." },

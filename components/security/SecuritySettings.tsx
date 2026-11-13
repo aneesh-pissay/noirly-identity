@@ -58,7 +58,7 @@ export function SecuritySettings({ mfaFor = null, returnTo = null }: { mfaFor?: 
   return <section aria-labelledby="security-title" className="mx-auto my-8 w-full max-w-3xl space-y-6 rounded-2xl border border-[var(--hairline)] p-6">
     <h2 id="security-title" className="text-xl font-semibold">Sign-in security</h2>
     <p className="text-sm opacity-75">Use an authenticator app or a passkey to protect your account. Changing these settings requires a sign-in within the last five minutes.</p>
-    <a href="/login?return_to=/account&reauth=1" className="text-sm underline">Sign in again to change security settings</a>
+    <a href="/login?return_to=%2Faccount%2Fsecurity&reauth=1" className="text-sm underline">Sign in again to change security settings</a>
     {message && <p role="status" className="text-sm">{message}</p>}
     {!settings ? <p role="status">Loading security settings…</p> : <>
       {(settings.enrollment.state === "grace" || settings.enrollment.state === "overdue") && (

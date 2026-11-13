@@ -1,32 +1,22 @@
-# Docs scan — 2026-11-13T03:07:41.064Z
+# Docs scan — 2026-11-13T03:35:48.297Z
 
 58 articles (49 feature pages). Videos: 0 of 36 recordable; 22 marked unavailable.
-Compared with the inventory written 2026-11-12T11:19:11.813Z.
+Compared with the inventory written 2026-11-13T03:07:41.064Z.
 
-## Articles whose sources changed — review the text (9)
+## Articles whose sources changed — review the text (4)
 
-- overview
-- your-account-page
 - passkeys
-- sign-in-providers
 - two-step-verification
-- profile-and-photo
-- losing-your-second-step
-- privacy-dashboard
-- integrating-an-app
+- phone-number
+- recovery-address
 
 ## Articles with missing source files — feature removed or moved? (0)
 
 _none_
 
-## Code surfaces no article covers — possibly undocumented features (6)
+## Code surfaces no article covers — possibly undocumented features (0)
 
-- app/(app)/account/devices/page.tsx
-- app/(app)/account/manage/page.tsx
-- app/(app)/account/security/page.tsx
-- components/account/AccountPageHeader.tsx
-- components/account/HashForward.tsx
-- components/account/PasswordForm.tsx
+_none_
 
 ## Deliberately not documented (19)
 

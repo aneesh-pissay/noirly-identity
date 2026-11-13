@@ -186,7 +186,7 @@ export const security: DocArticle[] = [
     kind: "feature",
     title: "Recovery address and phone",
     summary: "An address (or phone) used only to prove it's you if you lose your second step.",
-    location: "Account → Security → Recovery address and phone",
+    location: "Account → Security → Recovery address",
     introduction:
       "A recovery address is a separate email address you don't sign in with. If you ever lose your authenticator and passkeys, a code sent there proves it's you and shortens the wait to remove them. It's never used to sign in, and apps never see it.",
     problem: "Losing your second step shouldn't lock you out for good, but the way back mustn't be easy for an attacker either.",
