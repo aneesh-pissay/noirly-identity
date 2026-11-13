@@ -7,7 +7,6 @@ import { listEvents } from "@/lib/audit/event-log";
 import { userStream } from "@/lib/audit/chain";
 import { registerUser } from "@/lib/auth/auth-service";
 import { verifyEmailToken } from "@/lib/auth/email-tokens";
-import { loginWithGoogleProfile } from "@/lib/auth/google";
 import { resetEmailProvider, setEmailProvider, type EmailMessage } from "@/lib/email/email-service";
 import { User } from "@/models/User";
 import { UserEmail } from "@/models/UserEmail";
@@ -104,12 +103,10 @@ describe("additional email addresses", () => {
     expect(event).toMatchObject({ data: { from: "old@example.com", to: "new@example.com" }, ipAddress: "203.0.113.7" });
   });
 
-  it("keeps confirmed addresses from being registered by someone else, and lets Google find them", async () => {
+  it("keeps confirmed addresses from being registered by someone else", async () => {
     const { user } = await createTestUser();
     await addAndConfirm(String(user._id), "alias@example.com");
     await expect(registerUser({ email: "alias@example.com", password: "StrongPass1!", firstName: "A", lastName: "B" }, {})).rejects.toMatchObject({ code: "registration_failed" });
-    const result = await loginWithGoogleProfile({ sub: "google-123", email: "alias@example.com", emailVerified: true, firstName: "Test", lastName: "User", displayName: "Test User", avatarUrl: null }, {});
-    expect(result.user.id).toBe(String(user._id));
     expect(await User.countDocuments()).toBe(1);
   });
 

@@ -10,16 +10,23 @@ import { canAdminister, roleIn } from "@/lib/spaces/space-service";
  * An organization's security policies, set by admins with the settings area:
  * - a second step at sign-in (`requireMfa`, lib/spaces/space-service.ts);
  * - allowed sign-in methods: opening an app inside the organization needs a
- *   sign-in that used one of them (say, a passkey or Google, but not a
- *   password); anything else is asked to sign in again;
+ *   sign-in that used one of them (say, a passkey, but not a password);
+ *   anything else is asked to sign in again;
  * - session lifetimes: members' sessions last no longer than the
  *   organization allows (the strictest of theirs and every organization's,
  *   lib/sessions/lifetime.ts).
  */
 
-/** Ways to sign in an organization can allow (second steps aren't among them). */
-export const PRIMARY_METHODS = ["password", "passkey", "google", "apple", "microsoft", "github", "magic_link", "email_code", "sso"] as const;
+/**
+ * Ways to sign in an organization can allow (second steps aren't among them).
+ * Google, Apple, Microsoft and GitHub aren't: they're only ever linked, never
+ * used to sign in.
+ */
+export const PRIMARY_METHODS = ["password", "passkey", "magic_link", "email_code", "sso"] as const;
 export type PrimaryMethod = (typeof PRIMARY_METHODS)[number];
+
+/** What's stored, less anything no longer a way to sign in (a space that once allowed Google). */
+const current = (stored: readonly string[] | undefined) => (stored ?? []).filter((m): m is PrimaryMethod => (PRIMARY_METHODS as readonly string[]).includes(m));
 
 export type OrgSecurity = { requireMfa: boolean; allowedMethods: PrimaryMethod[]; sessionPolicy: SessionPolicy };
 
@@ -28,7 +35,7 @@ export async function getOrgSecurity(actorId: string, spaceId: string): Promise<
   const org = await Organization.findById(new Types.ObjectId(spaceId)).select("requireMfa allowedMethods sessionPolicy").lean();
   return {
     requireMfa: Boolean(org?.requireMfa),
-    allowedMethods: (org?.allowedMethods ?? []) as PrimaryMethod[],
+    allowedMethods: current(org?.allowedMethods),
     sessionPolicy: { idleSeconds: org?.sessionPolicy?.idleSeconds ?? null, absoluteSeconds: org?.sessionPolicy?.absoluteSeconds ?? null },
   };
 }
@@ -55,7 +62,8 @@ export async function setOrgSecurity(actorId: string, spaceId: string, input: { 
 /** Did this sign-in use a method the organization allows? (Any, when it lists none.) */
 export async function signInMeetsOrgMethods(organizationId: string, sessionMethods: readonly string[]): Promise<{ ok: boolean; allowed: string[] }> {
   const org = await Organization.findById(new Types.ObjectId(organizationId)).select("allowedMethods").lean();
-  const allowed = org?.allowedMethods ?? [];
+  // A space that allowed only Google (say) would otherwise shut everyone out: then any way is allowed.
+  const allowed: string[] = current(org?.allowedMethods);
   if (!allowed.length) return { ok: true, allowed };
   return { ok: sessionMethods.some((m) => allowed.includes(m)), allowed };
 }

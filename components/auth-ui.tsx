@@ -11,9 +11,7 @@ import {
   cn,
 } from "@noirly-dev/ui";
 import { AuthLogo } from "@/components/AuthLogo";
-import { PROVIDER_LABEL, providerStartPath } from "@/lib/account/sign-in-methods";
 import {
-  useState,
   type ComponentProps,
   type InputHTMLAttributes,
   type ReactNode,
@@ -130,56 +128,6 @@ export function TextLink({
     <Link href={href} className={linkClass}>
       {children}
     </Link>
-  );
-}
-
-export function GoogleButton({
-  returnTo,
-  loginHint,
-}: {
-  returnTo?: string | null;
-  loginHint?: string | null;
-}) {
-  const [busy, setBusy] = useState(false);
-  const params = new URLSearchParams();
-  if (returnTo) params.set("return_to", returnTo);
-  if (loginHint) params.set("login_hint", loginHint);
-  const qs = params.toString();
-  const href = qs ? `/api/auth/google?${qs}` : "/api/auth/google";
-
-  return (
-    <>
-      {busy ? <BusyOverlay label="Continuing with Google" /> : null}
-      <Button
-        variant="secondary"
-        className="w-full"
-        asChild
-        aria-busy={busy}
-      >
-        <a href={href} onClick={() => setBusy(true)}>
-          {busy ? "Redirecting…" : "Continue with Google"}
-        </a>
-      </Button>
-    </>
-  );
-}
-
-/** "Continue with Apple / Microsoft / GitHub" (Google has its own, with One Tap). */
-export function ProviderButton({ provider, returnTo }: { provider: "apple" | "microsoft" | "github"; returnTo?: string | null }) {
-  const [busy, setBusy] = useState(false);
-  const label = PROVIDER_LABEL[provider];
-  const start = providerStartPath(provider);
-  const href = returnTo ? `${start}?return_to=${encodeURIComponent(returnTo)}` : start;
-
-  return (
-    <>
-      {busy ? <BusyOverlay label={`Continuing with ${label}`} /> : null}
-      <Button variant="secondary" className="w-full" asChild aria-busy={busy}>
-        <a href={href} onClick={() => setBusy(true)}>
-          {busy ? "Redirecting…" : `Continue with ${label}`}
-        </a>
-      </Button>
-    </>
   );
 }
 

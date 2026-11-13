@@ -209,7 +209,7 @@ export const spaces: DocArticle[] = [
       { title: "Sessions", body: "Choose the session limits and save." },
     ],
     options: [
-      { name: "Ways members may sign in", description: "Password, Passkey, Google, Apple, Microsoft, GitHub, Email link, Email code, Single sign-on." },
+      { name: "Ways members may sign in", description: "Password, Passkey, Email link, Email code, Single sign-on." },
       { name: "Session limits", description: "No limit, or a shorter idle and absolute limit than Identity's default." },
     ],
     permissions: [

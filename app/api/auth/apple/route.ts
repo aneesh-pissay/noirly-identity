@@ -4,6 +4,7 @@ import { enforceRateLimit } from "@/lib/api/request";
 import { withDb } from "@/lib/api/with-db";
 import { buildAppleAuthorizationUrl, isAppleConfigured } from "@/lib/auth/apple";
 import { newGoogleOAuthSecrets } from "@/lib/auth/google";
+import { PROVIDER_SIGN_IN_ENABLED, providerSignInOffUrl } from "@/lib/auth/provider-login";
 import { safeReturnTo, signOAuthState } from "@/lib/auth/oauth-state";
 import { getEnv, isProduction } from "@/lib/config/env";
 import { applySecurityHeaders, redirectGet } from "@/lib/security/headers";
@@ -11,7 +12,7 @@ import { securitySession } from "@/lib/security/security-session";
 
 const APPLE_STATE_COOKIE = "noirly_apple_oauth";
 
-/** Starts Sign in with Apple; `intent=link` links Apple to the signed-in account instead (after a recent sign-in). */
+/** Starts linking Apple to the signed-in account (`intent=link`, after a recent sign-in). Apple never signs anyone in. */
 export async function GET(request: NextRequest) {
   try {
     await enforceRateLimit(request, "auth-apple-start", 20, 60);
@@ -21,6 +22,8 @@ export async function GET(request: NextRequest) {
     const env = getEnv();
     const secrets = newGoogleOAuthSecrets();
     let linkSessionId: string | undefined;
+    // Providers are only linked, never used to sign in.
+    if (!PROVIDER_SIGN_IN_ENABLED && request.nextUrl.searchParams.get("intent") !== "link") return redirectGet(providerSignInOffUrl("apple", env.APP_URL));
     if (request.nextUrl.searchParams.get("intent") === "link") {
       try {
         const { ctx } = await withDb(() => securitySession(true));

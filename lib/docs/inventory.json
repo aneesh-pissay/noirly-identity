@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-13T03:35:48.297Z",
+  "generatedAt": "2026-11-13T03:53:22.114Z",
   "articles": [
     {
       "id": "overview",
@@ -35,7 +35,7 @@
         "app/api/auth/resend-verification/route.ts",
         "app/api/auth/register"
       ],
-      "fingerprint": "24befaad05679257"
+      "fingerprint": "9f2e58b873376304"
     },
     {
       "id": "signing-in",
@@ -53,7 +53,7 @@
         "lib/auth/recent-emails.ts",
         "lib/security/risk.ts"
       ],
-      "fingerprint": "f860ff42a6c2dbea"
+      "fingerprint": "8d06895e0c3e782c"
     },
     {
       "id": "your-account-page",
@@ -111,27 +111,24 @@
     },
     {
       "id": "sign-in-providers",
-      "title": "Google and other providers",
+      "title": "Linking Google and other accounts",
       "category": "signing-in",
       "kind": "feature",
-      "location": "Sign-in page, and Account → Security → Ways to sign in",
+      "location": "Account → Security → Ways to sign in → Linked accounts",
       "video": "unavailable",
-      "unavailableReason": "Signing in with a provider happens on the provider's own pages with a real account there, which can't be recorded safely.",
+      "unavailableReason": "Linking happens on the provider's own pages with a real account there, which can't be recorded safely.",
       "verified": false,
       "sources": [
         "lib/auth/provider-login.ts",
-        "lib/auth/google.ts",
-        "lib/auth/apple.ts",
-        "lib/auth/oauth-providers.ts",
         "lib/account/identities.ts",
+        "lib/auth/oauth-providers.ts",
         "components/security/SignInMethods.tsx",
-        "components/GoogleOneTap.tsx",
         "app/api/auth/google",
         "app/api/auth/apple",
         "app/api/auth/oauth",
         "app/api/auth/oauth-providers/route.ts"
       ],
-      "fingerprint": "9f59c8e32482f388"
+      "fingerprint": "aed6d84c10e4cfc0"
     },
     {
       "id": "email-sign-in-links",
@@ -182,7 +179,7 @@
         "lib/account/sign-in-methods.ts",
         "app/api/auth/identities"
       ],
-      "fingerprint": "acb9bca2640edc3b"
+      "fingerprint": "3605d51488ce9dbd"
     },
     {
       "id": "single-sign-on",
@@ -199,7 +196,7 @@
         "lib/auth/discovery.ts",
         "app/(auth)/login/LoginForm.tsx"
       ],
-      "fingerprint": "eba659e550dffda7"
+      "fingerprint": "297a35fa72e043cb"
     },
     {
       "id": "mobile-app-sign-in",
@@ -593,7 +590,7 @@
         "lib/spaces/org-security.ts",
         "app/api/spaces/[spaceId]/security"
       ],
-      "fingerprint": "df8aa43ccb5a59dd"
+      "fingerprint": "b08400eb1aef81ca"
     },
     {
       "id": "space-access",
@@ -646,7 +643,7 @@
         "lib/sessions/session-service.ts",
         "lib/auth/discovery.ts"
       ],
-      "fingerprint": "63c2aff33258fe35"
+      "fingerprint": "39d058056c1db947"
     },
     {
       "id": "attribute-mapping",
@@ -977,7 +974,7 @@
         "lib/security/rate-limit.ts",
         "app/privacy/page.tsx"
       ],
-      "fingerprint": "c90d5fcbc7c2f257"
+      "fingerprint": "e05485c717e60119"
     }
   ],
   "discovered": {
@@ -1051,8 +1048,6 @@
       "app/api/auth/forgot-password/route.ts",
       "app/api/auth/freeze/route.ts",
       "app/api/auth/google/callback/route.ts",
-      "app/api/auth/google/nonce/route.ts",
-      "app/api/auth/google/one-tap/route.ts",
       "app/api/auth/google/route.ts",
       "app/api/auth/identities/route.ts",
       "app/api/auth/login/route.ts",
@@ -1152,7 +1147,6 @@
       "components/ClientGenerator.tsx",
       "components/DeleteAccountForm.tsx",
       "components/FaviconTheme.tsx",
-      "components/GoogleOneTap.tsx",
       "components/LegalPage.tsx",
       "components/MarketingHeader.tsx",
       "components/OrDivider.tsx",

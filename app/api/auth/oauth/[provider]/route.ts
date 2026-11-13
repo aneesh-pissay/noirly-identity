@@ -4,14 +4,15 @@ import { enforceRateLimit } from "@/lib/api/request";
 import { withDb } from "@/lib/api/with-db";
 import { newGoogleOAuthSecrets, pkceChallengeS256 } from "@/lib/auth/google";
 import { buildAuthorizationUrl, isProviderConfigured, isRedirectProvider } from "@/lib/auth/oauth-providers";
+import { PROVIDER_SIGN_IN_ENABLED, providerSignInOffUrl } from "@/lib/auth/provider-login";
 import { safeReturnTo, signOAuthState } from "@/lib/auth/oauth-state";
 import { getEnv, isProduction } from "@/lib/config/env";
 import { applySecurityHeaders, redirectGet } from "@/lib/security/headers";
 import { securitySession } from "@/lib/security/security-session";
 
 /**
- * Starts signing in with Microsoft or GitHub; `intent=link` links it to the
- * signed-in account instead (after a recent sign-in). The state, PKCE
+ * Starts linking Microsoft or GitHub to the signed-in account (`intent=link`,
+ * after a recent sign-in); neither ever signs anyone in. The state, PKCE
  * verifier and nonce ride in a signed cookie for this provider's callback.
  */
 export async function GET(request: NextRequest, context: { params: Promise<{ provider: string }> }) {
@@ -25,6 +26,8 @@ export async function GET(request: NextRequest, context: { params: Promise<{ pro
     const env = getEnv();
     const secrets = newGoogleOAuthSecrets();
     let linkSessionId: string | undefined;
+    // Providers are only linked, never used to sign in.
+    if (!PROVIDER_SIGN_IN_ENABLED && request.nextUrl.searchParams.get("intent") !== "link") return redirectGet(providerSignInOffUrl(provider, env.APP_URL));
     if (request.nextUrl.searchParams.get("intent") === "link") {
       try {
         const { ctx } = await withDb(() => securitySession(true));

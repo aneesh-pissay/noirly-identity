@@ -21,8 +21,8 @@ async function googleOnlyUser(email = "only-google@example.com") {
 
 describe("ways to sign in", () => {
   it("counts each kind once", () => {
-    expect(methodCount({ password: true, passkeys: 3, providers: 1 })).toBe(3);
-    expect(methodCount({ password: false, passkeys: 0, providers: 0 })).toBe(0);
+    expect(methodCount({ password: true, passkeys: 3 })).toBe(2);
+    expect(methodCount({ password: false, passkeys: 0 })).toBe(0);
   });
 
   it("links Google from settings, once, and only to one account", async () => {
@@ -37,14 +37,13 @@ describe("ways to sign in", () => {
 
     const methods = await listSignInMethods(id);
     expect(methods).toMatchObject({ password: true, passkeys: 0, providers: [{ provider: "google", linked: { email: "work@gmail.com" } }, { provider: "apple", linked: null }, { provider: "microsoft", linked: null }, { provider: "github", linked: null }] });
-    // Google now signs in to this account, whatever address it carries.
-    const signedIn = await loginWithGoogleProfile(google("g-1", "work@gmail.com"), {});
-    expect(signedIn.user.id).toBe(id);
+    // Linked, but never a way to sign in.
+    await expect(loginWithGoogleProfile(google("g-1", "work@gmail.com"), {})).rejects.toMatchObject({ code: "provider_sign_in_off" });
     const [event] = (await listEvents({ action: "account.identity_linked" })).events;
     expect(event).toMatchObject({ subjectId: id, data: { provider: "google", email: "work@gmail.com", fromSettings: true } });
   });
 
-  it("unlinks Google when there's another way in, and refuses when there isn't", async () => {
+  it("unlinks Google whenever asked: it was never a way in", async () => {
     const { user } = await createTestUser();
     await linkGoogle(String(user._id), google("g-3"));
     const after = await unlinkProvider(String(user._id), "google");
@@ -52,11 +51,8 @@ describe("ways to sign in", () => {
     expect((await listEvents({ action: "account.identity_unlinked" })).events).toHaveLength(1);
 
     const only = await googleOnlyUser();
-    await expect(unlinkProvider(String(only._id), "google")).rejects.toMatchObject({ code: "last_sign_in_method" });
-    expect(await LinkedAccount.countDocuments({ userId: only._id })).toBe(1);
-    // A passkey is a whole way in, so then Google can go.
-    await Passkey.create({ userId: only._id, credentialId: "cred-1", publicKey: "key", counter: 0 });
     await unlinkProvider(String(only._id), "google");
+    expect(await LinkedAccount.countDocuments({ userId: only._id })).toBe(0);
   });
 
   it("keeps the last passkey on an account with nothing else", async () => {
@@ -88,13 +84,16 @@ describe("password settings", () => {
     await expect(setPassword(String(only._id), "Another1!pass")).rejects.toMatchObject({ code: "password_exists" });
   });
 
-  it("removes a password when there's another way in, signing out other sessions", async () => {
+  it("removes a password when there's a passkey too, signing out other sessions", async () => {
     const { user } = await createTestUser();
     const id = String(user._id);
     const kept = await createAuthedSession(id);
     const other = await createAuthedSession(id);
     await expect(removePassword(id, String(kept.session._id))).rejects.toMatchObject({ code: "last_sign_in_method" });
+    // A linked Google account isn't a way in; a passkey is.
     await linkGoogle(id, google("g-pw"));
+    await expect(removePassword(id, String(kept.session._id))).rejects.toMatchObject({ code: "last_sign_in_method" });
+    await Passkey.create({ userId: user._id, credentialId: "cred-pw", publicKey: "key", counter: 0 });
     const after = await removePassword(id, String(kept.session._id));
     expect(after.password).toBe(false);
     expect(await validateSession(kept.token)).not.toBeNull();

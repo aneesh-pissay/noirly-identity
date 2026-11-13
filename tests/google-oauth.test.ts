@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { loginWithGoogleProfile } from "@/lib/auth/google";
-import { loginUser } from "@/lib/auth/auth-service";
+import { loginWithProviderProfile, providerSignInOffUrl } from "@/lib/auth/provider-login";
 import { LinkedAccount } from "@/models/LinkedAccount";
 import { User } from "@/models/User";
 import { createTestUser } from "./helpers";
@@ -19,62 +19,31 @@ function googleProfile(overrides?: Partial<Parameters<typeof loginWithGoogleProf
   };
 }
 
-describe("google login", () => {
-  it("creates a verified user without a password", async () => {
-    const result = await loginWithGoogleProfile(googleProfile(), {
-      ipAddress: "1.1.1.1",
-    });
-
-    expect(result.user.email).toBe("google.user@example.com");
-    expect(result.user.emailVerified).toBe(true);
-    expect(result.user.status).toBe("active");
-    expect(result.sessionToken).toBeTruthy();
-
-    const stored = await User.findOne({ email: "google.user@example.com" }).select(
-      "+passwordHash",
-    );
-    expect(stored?.passwordHash).toBeFalsy();
-
-    const link = await LinkedAccount.findOne({
-      provider: "google",
-      providerAccountId: "google-sub-123",
-    });
-    expect(String(link?.userId)).toBe(result.user.id);
+describe("providers never sign in", () => {
+  it("won't make an account from a Google profile", async () => {
+    await expect(loginWithGoogleProfile(googleProfile(), { ipAddress: "1.1.1.1" })).rejects.toMatchObject({ code: "provider_sign_in_off", status: 403 });
+    expect(await User.countDocuments()).toBe(0);
+    expect(await LinkedAccount.countDocuments()).toBe(0);
   });
 
-  it("links Google to an existing email account", async () => {
-    const { user } = await createTestUser({ email: "existing@example.com" });
-    const result = await loginWithGoogleProfile(
-      googleProfile({
-        email: "existing@example.com",
-        sub: "google-existing",
-      }),
-      {},
-    );
-
-    expect(result.user.id).toBe(String(user._id));
-    const link = await LinkedAccount.findOne({
-      provider: "google",
-      providerAccountId: "google-existing",
-    });
-    expect(String(link?.userId)).toBe(String(user._id));
+  it("won't sign in to, or link, an existing account that has the same address", async () => {
+    await createTestUser({ email: "existing@example.com" });
+    await expect(loginWithGoogleProfile(googleProfile({ email: "existing@example.com", sub: "google-existing" }), {})).rejects.toMatchObject({ code: "provider_sign_in_off" });
+    expect(await LinkedAccount.countDocuments()).toBe(0);
   });
 
-  it("reuses a previously linked Google account", async () => {
-    const first = await loginWithGoogleProfile(googleProfile({ sub: "stable-sub" }), {});
-    const second = await loginWithGoogleProfile(googleProfile({ sub: "stable-sub" }), {});
-    expect(second.user.id).toBe(first.user.id);
-    expect(await LinkedAccount.countDocuments({ providerAccountId: "stable-sub" })).toBe(1);
+  it("won't sign in with a linked account either, for any provider", async () => {
+    const { user } = await createTestUser({ email: "linked@example.com" });
+    for (const provider of ["google", "apple", "microsoft", "github"] as const) {
+      await LinkedAccount.create({ userId: user._id, provider, providerAccountId: `${provider}-linked` });
+      await expect(loginWithProviderProfile(provider, googleProfile({ email: "linked@example.com", sub: `${provider}-linked` }), {})).rejects.toMatchObject({ code: "provider_sign_in_off" });
+    }
   });
 
-  it("does not allow password login for Google-only accounts", async () => {
-    await loginWithGoogleProfile(googleProfile({ email: "nopw@example.com" }), {});
-    await expect(
-      loginUser(
-        { email: "nopw@example.com", password: "Anything1!" },
-        { ipAddress: "2.2.2.2" },
-      ),
-    ).rejects.toMatchObject({ code: "invalid_credentials" });
+  it("sends an old provider button back to the sign-in page, saying why", () => {
+    const url = providerSignInOffUrl("github", "https://id.example.com");
+    expect(url.pathname).toBe("/login");
+    expect(url.searchParams.get("error")).toContain("doesn't sign in with GitHub");
   });
 });
 

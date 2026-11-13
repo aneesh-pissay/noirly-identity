@@ -7,7 +7,7 @@ import { ABSOLUTE_CHOICES, IDLE_CHOICES } from "@/lib/sessions/lifetime-choices"
 type Security = { requireMfa: boolean; allowedMethods: string[]; sessionPolicy: { idleSeconds: number | null; absoluteSeconds: number | null } };
 
 const METHOD_LABEL: Record<string, string> = {
-  password: "Password", passkey: "Passkey", google: "Google", apple: "Apple", microsoft: "Microsoft", github: "GitHub", magic_link: "Email link", email_code: "Email code", sso: "Single sign-on",
+  password: "Password", passkey: "Passkey", magic_link: "Email link", email_code: "Email code", sso: "Single sign-on",
 };
 
 function duration(seconds: number) {

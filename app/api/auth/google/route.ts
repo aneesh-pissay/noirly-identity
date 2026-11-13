@@ -9,6 +9,7 @@ import {
   newGoogleOAuthSecrets,
   pkceChallengeS256,
 } from "@/lib/auth/google";
+import { PROVIDER_SIGN_IN_ENABLED, providerSignInOffUrl } from "@/lib/auth/provider-login";
 import { safeReturnTo, signOAuthState } from "@/lib/auth/oauth-state";
 import { getEnv, isProduction } from "@/lib/config/env";
 import { applySecurityHeaders, redirectGet } from "@/lib/security/headers";
@@ -31,6 +32,8 @@ export async function GET(request: NextRequest) {
     const secrets = newGoogleOAuthSecrets();
     // Linking from settings adds a way into the account, so it takes a recent sign-in, like other security changes.
     let linkSessionId: string | undefined;
+    // Providers are only linked, never used to sign in.
+    if (!PROVIDER_SIGN_IN_ENABLED && request.nextUrl.searchParams.get("intent") !== "link") return redirectGet(providerSignInOffUrl("google", env.APP_URL));
     if (request.nextUrl.searchParams.get("intent") === "link") {
       try {
         const { ctx } = await withDb(() => securitySession(true));

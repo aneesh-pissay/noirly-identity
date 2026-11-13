@@ -5,17 +5,14 @@ import { useSearchParams } from "next/navigation";
 import { AuthShell } from "@noirly-dev/ui";
 import { AuthLogo } from "@/components/AuthLogo";
 import {
-  ProviderButton,
   BusyOverlay,
   FormField,
-  GoogleButton,
   Notice,
   ScreenFallback,
   SubmitButton,
   TextLink,
 } from "@/components/auth-ui";
 import { PasskeySignIn } from "@/components/security/PasskeySignIn";
-import { GoogleOneTap } from "@/components/GoogleOneTap";
 import { OrDivider } from "@/components/OrDivider";
 import { getCsrf } from "@/lib/auth/csrf-client";
 import type { SignInOptions } from "@/lib/auth/discovery";
@@ -37,9 +34,6 @@ export function LoginForm({
   const [error, setError] = useState<string | null>(searchParams.get("error"));
   const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
   const [csrf, setCsrf] = useState("");
-  const [googleEnabled, setGoogleEnabled] = useState(false);
-  const [googleClientId, setGoogleClientId] = useState<string | null>(null);
-  const [otherProviders, setOtherProviders] = useState<Array<"apple" | "microsoft" | "github">>([]);
   const recentEmails = JSON.parse(useSyncExternalStore(subscribeRecentEmails, recentEmailsSnapshot, serverRecentEmailsSnapshot)) as string[];
   const [email, setEmail] = useState(currentEmail ?? "");
   const [submitting, setSubmitting] = useState(false);
@@ -47,14 +41,6 @@ export function LoginForm({
   useEffect(() => {
     void getCsrf().then(setCsrf);
     if (currentEmail) rememberEmail(currentEmail);
-    void fetch("/api/auth/oauth-providers")
-      .then((res) => res.json() as Promise<{ google?: boolean; googleClientId?: string | null; apple?: boolean; microsoft?: boolean; github?: boolean }>)
-      .then((data) => {
-        setGoogleEnabled(Boolean(data.google));
-        setGoogleClientId(data.googleClientId ?? null);
-        setOtherProviders((["apple", "microsoft", "github"] as const).filter((p) => data[p]));
-      })
-      .catch(() => undefined);
   }, [currentEmail]);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
@@ -191,36 +177,6 @@ export function LoginForm({
   }
 
   const registerHref = withPopup(withReturnTo("/register", returnTo), compact);
-  const providerButtons = otherProviders.length ? (
-    <div className="flex flex-col gap-2">
-      {otherProviders.map((provider) => <ProviderButton key={provider} provider={provider} returnTo={returnTo ?? "/account"} />)}
-    </div>
-  ) : null;
-  const googleBlock =
-    googleEnabled && googleClientId ? (
-      <>
-        <GoogleOneTap
-          clientId={googleClientId}
-          returnTo={returnTo}
-          popup={compact}
-          autoPrompt={!selectAccount}
-        />
-        {providerButtons}
-        <OrDivider />
-      </>
-    ) : googleEnabled ? (
-      <>
-        <GoogleButton returnTo={returnTo ?? "/account"} />
-        {providerButtons}
-        <OrDivider />
-      </>
-    ) : providerButtons ? (
-      <>
-        {providerButtons}
-        <OrDivider />
-      </>
-    ) : null;
-
   const accountsBlock =
     recentEmails.length > 0 || currentEmail ? (
       <div className="flex flex-col gap-2">
@@ -240,10 +196,6 @@ export function LoginForm({
           </button>
         ) : null}
         {recentEmails.map((item) => {
-          const googleHref = withReturnTo(
-            `/api/auth/google?login_hint=${encodeURIComponent(item)}`,
-            returnTo,
-          );
           const isCurrent = currentEmail === item;
           return (
             <div
@@ -269,14 +221,6 @@ export function LoginForm({
                   </span>
                 ) : null}
               </button>
-              {googleEnabled ? (
-                <a
-                  href={googleHref}
-                  className="shrink-0 text-[10px] uppercase tracking-[0.12em] text-[var(--muted-foreground)] underline underline-offset-4 hover:text-[var(--foreground)]"
-                >
-                  Google
-                </a>
-              ) : null}
               <button
                 type="button"
                 aria-label={`Remove ${item}`}
@@ -311,13 +255,11 @@ export function LoginForm({
         {selectAccount ? (
           <>
             {accountsBlock}
-            {googleBlock}
-          <PasskeySignIn returnTo={returnTo} />
+            <PasskeySignIn returnTo={returnTo} />
           </>
         ) : (
           <>
-            {googleBlock}
-          <PasskeySignIn returnTo={returnTo} />
+            <PasskeySignIn returnTo={returnTo} />
             {accountsBlock}
           </>
         )}
@@ -351,11 +293,6 @@ export function LoginForm({
                 Sign in with {options.sso.name}
               </a>
             ) : null}
-            {options.providers.map((provider) =>
-              provider === "google"
-                ? <GoogleButton key={provider} returnTo={returnTo ?? "/account"} loginHint={options.email} />
-                : <ProviderButton key={provider} provider={provider} returnTo={returnTo ?? "/account"} />,
-            )}
             {options.passkey ? <p className="text-sm text-[var(--muted-foreground)]">This account has a passkey: use the passkey sign-in above.</p> : null}
             {options.password ? (
               <form className="flex flex-col gap-4" onSubmit={onSubmit}>

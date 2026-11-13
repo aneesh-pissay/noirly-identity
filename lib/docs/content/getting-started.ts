@@ -11,13 +11,13 @@ export const gettingStarted: DocArticle[] = [
       "Noirly Identity is the sign-in service behind Flow, Ledger, Pulse and every other Noirly app. You have one account here. When you open an app, it sends you to Identity, Identity checks it's you, and sends you back signed in. The app never sees your password.\n\nEverything about the account lives here too: your name and addresses, the ways you sign in, the devices that are signed in, the apps you've let in, and the spaces (teams) you belong to.",
     highlights: [
       "One sign-in for every Noirly app",
-      "Passwords, passkeys, Google and other providers, or an emailed link",
+      "Passwords, passkeys, or an emailed link or code",
       "A second step with an authenticator app, passkey or security key",
       "Spaces: one team, with roles, across every app",
       "For organizations: single sign-on and directory provisioning",
     ],
     steps: [
-      { title: "Create an account", body: "Go to Create account, or choose a provider such as Google on the sign-in page." },
+      { title: "Create an account", body: "Go to Create account and fill in your name, address and a password." },
       { title: "Confirm your email address", body: "Open the link Identity emails you. Until then you can't sign in with a password." },
       { title: "Protect it", body: "On your account page, under Sign-in security, set up an authenticator app or add a passkey." },
       { title: "Open an app", body: "Go to any Noirly app and choose to sign in. You're already signed in at Identity, so the app opens straight away." },
@@ -37,10 +37,10 @@ export const gettingStarted: DocArticle[] = [
     category: "getting-started",
     kind: "feature",
     title: "Creating an account",
-    summary: "Sign up with your name, email address and a password, or with a provider, and confirm your address.",
+    summary: "Sign up with your name, email address and a password, and confirm your address.",
     location: "/register",
     introduction:
-      "Create account asks for your first name, last name, email address and a password of at least 10 characters. Identity then emails a link to confirm the address. You can also skip the form and sign up with a provider such as Google: the provider has already confirmed your address, so there's nothing more to do.",
+      "Create account asks for your first name, last name, email address and a password of at least 10 characters. Identity then emails a link to confirm the address. Google, Apple, Microsoft and GitHub can't be used to sign up; you can link them to your account afterwards.",
     problem: "Each new app asking for another username and password leads to reused passwords and accounts nobody remembers making.",
     solution:
       "You make one account, once. Identity checks the password against known data breaches before accepting it, confirms you own the email address, and slows down automated sign-ups without showing you a puzzle.",
@@ -59,7 +59,6 @@ export const gettingStarted: DocArticle[] = [
       { name: "First name, Last name", description: "Shown to the apps you allow. You can change them later under Personal info in your account." },
       { name: "Email", description: "Your primary address: where sign-in links and security notices go." },
       { name: "Password", description: "10 to 128 characters. Refused if it appears in a known data breach." },
-      { name: "Sign up with a provider", description: "Google and other providers on the sign-in page create the account from the address they've confirmed." },
     ],
     permissions: [
       { who: "Anyone", can: "Create an account with an address they can read email at." },
@@ -68,7 +67,7 @@ export const gettingStarted: DocArticle[] = [
     advanced: [
       "Passwords are checked against Have I Been Pwned by sending only the first five characters of the password's hash, so the password itself never leaves Identity.",
       "The form solves a small proof-of-work challenge in the background; sign-ups from one address or network are rate limited.",
-      "An account whose address was never confirmed can't be signed in to. If the address's real owner later signs in with a provider, whatever the unconfirmed sign-up set up is cleared.",
+      "An account whose address was never confirmed can't be signed in to.",
     ],
     troubleshooting: [
       { problem: "“This password has appeared in a data breach”", solution: "Choose a different one. The check doesn't mean your account was breached, only that the password is on public lists attackers try first." },
@@ -88,19 +87,19 @@ export const gettingStarted: DocArticle[] = [
     summary: "Type your email address first; Identity then offers the ways that address can sign in.",
     location: "/login",
     introduction:
-      "Sign-in starts with your email address. Identity then shows what that address can use: a password, a passkey, a provider such as Google, or a sign-in link sent by email. If your organization uses single sign-on, you're sent to its sign-in page instead. Accounts you've used on this device are offered as a list, so you often don't need to type anything.",
+      "Sign-in starts with your email address. Identity then shows what that address can use: a password, a passkey, or a sign-in link and code sent by email. Google, Apple, Microsoft and GitHub never sign you in, even when linked. If your organization uses single sign-on, you're sent to its sign-in page instead. Accounts you've used on this device are offered as a list, so you often don't need to type anything.",
     problem: "A sign-in page with every option at once leaves people guessing which one they used, and typing passwords into accounts that never had one.",
     solution:
       "Email-first sign-in shows only the options that will work for you, without revealing to a stranger whether an address has an account: an address with no account looks exactly like an ordinary password account.",
     highlights: ["Email first, then the right options", "Recent accounts on this device, one click", "An emailed link is always available", "A second step when the account, a space or a risky sign-in needs one"],
     useCases: [
       { title: "Back on your own laptop", body: "Choose your account from Accounts on this device and enter your password or use your passkey." },
-      { title: "Forgot which method you used", body: "Type your address: the page shows Google if that's how you signed up, or the password box if not." },
+      { title: "Forgot which method you used", body: "Type your address: the page shows what works, and an emailed link always does." },
       { title: "On a borrowed computer", body: "Choose Email me a sign-in link instead and open it on your phone, or type the code from that email." },
     ],
     steps: [
       { title: "Enter your email address", body: "On Sign in to Noirly, type your address and continue." },
-      { title: "Use what's offered", body: "Enter your password, choose Sign in with a passkey, pick the provider shown, or choose Email me a sign-in link instead." },
+      { title: "Use what's offered", body: "Enter your password, choose Sign in with a passkey, or choose Email me a sign-in link instead." },
       { title: "Pass the second step, if asked", body: "On Verify your sign-in, enter the code from your authenticator app, use your passkey, or enter a recovery code." },
       { title: "Go on to the app", body: "Identity returns you to the app that sent you, or to your account page." },
     ],
@@ -124,8 +123,9 @@ export const gettingStarted: DocArticle[] = [
     ],
     troubleshooting: [
       { problem: "“Please verify your email address before signing in”", solution: "Open the confirmation link from when you signed up. The sign-in page offers to send a new one." },
-      { problem: "No password box appears", solution: "The account has no password: it signs in with the provider or passkey shown. Use that, or the emailed link, then add a password under Ways to sign in." },
+      { problem: "No password box appears", solution: "The account signs in with a passkey. Use it, or the emailed link, then add a password under Ways to sign in if you want one." },
       { problem: "It sends me to my company's sign-in", solution: "Your organization requires single sign-on for your address. Sign in there; contact your admin if that account is disabled." },
+      { problem: "I used to sign in with Google (or Apple, Microsoft, GitHub)", solution: "Noirly no longer signs in with them. Type your address and choose Email me a sign-in link instead, then add a password or passkey under Security." },
       { problem: "Too many attempts", solution: "Wait a few minutes and try again, or use the emailed sign-in link." },
     ],
     related: ["passwords", "passkeys", "email-sign-in-links", "two-step-verification", "single-sign-on"],

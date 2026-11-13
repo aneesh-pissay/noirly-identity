@@ -2,7 +2,6 @@ import { createHash, generateKeyPairSync } from "node:crypto";
 import { createLocalJWKSet, exportJWK, importSPKI, jwtVerify, SignJWT } from "jose";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { linkProvider } from "@/lib/account/identities";
-import { listEvents } from "@/lib/audit/event-log";
 import {
   appleClientSecret,
   buildAppleAuthorizationUrl,
@@ -85,26 +84,10 @@ describe("Sign in with Apple", () => {
     expect(parseAppleUser(null)).toEqual({});
   });
 
-  it("makes an account from an Apple sign-in, then finds it by Apple's id next time", async () => {
+  it("never signs in or makes an account, even with a checked Apple token", async () => {
     const profile = await verifyAppleIdToken({ idToken: await appleToken({ nonce: "n" }), nonce: "n", name: { firstName: "Asha", lastName: "Rao" } });
-    const first = await loginWithAppleProfile(profile, { ipAddress: "203.0.113.7" });
-    expect(first.user).toMatchObject({ email: "rel4y@privaterelay.appleid.com", firstName: "Asha", emailVerified: true, hasPassword: false });
-    const again = await loginWithAppleProfile({ ...profile, firstName: "Ignored" }, {});
-    expect(again.user.id).toBe(first.user.id);
-    expect(await User.countDocuments()).toBe(1);
-    const events = (await listEvents({ action: "auth.signed_in" })).events;
-    expect(events[0]!.data).toEqual({ methods: ["apple"] });
-  });
-
-  it("links to the existing account that owns the email, once per provider", async () => {
-    const { user } = await createTestUser({ email: "asha@example.com" });
-    const profile = (sub: string) => ({ sub, email: "asha@example.com", emailVerified: true, firstName: "A", lastName: "R", displayName: "A R", avatarUrl: null });
-    expect((await loginWithAppleProfile(profile("apple-1"), {})).user.id).toBe(String(user._id));
-    expect(await LinkedAccount.findOne({ provider: "apple" }).lean()).toMatchObject({ userId: user._id, email: "asha@example.com" });
-    // A second Apple id with the same address doesn't quietly add another link.
-    await expect(loginWithAppleProfile(profile("apple-2"), {})).rejects.toMatchObject({ code: "linked_elsewhere" });
-    // Unverified Apple addresses aren't trusted to find an account.
-    await expect(loginWithAppleProfile({ ...profile("apple-3"), emailVerified: false }, {})).rejects.toMatchObject({ code: "apple_email_unverified" });
+    await expect(loginWithAppleProfile(profile, { ipAddress: "203.0.113.7" })).rejects.toMatchObject({ code: "provider_sign_in_off" });
+    expect(await User.countDocuments()).toBe(0);
   });
 
   it("links from settings, alongside Google", async () => {

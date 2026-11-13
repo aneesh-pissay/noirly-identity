@@ -6,6 +6,7 @@ import { consumeRateLimit } from "@/lib/security/shared-rate-limit";
 import { LinkedAccount } from "@/models/LinkedAccount";
 import { Passkey } from "@/models/SecurityCredential";
 import { User } from "@/models/User";
+import { PROVIDER_SIGN_IN_ENABLED } from "@/lib/auth/provider-login";
 
 /**
  * Email-first sign-in: after someone types their address, which ways to
@@ -64,7 +65,8 @@ async function discoverAccount(email: string): Promise<SignInOptions> {
     LinkedAccount.find({ userId: user._id }).select("provider").lean(),
     Passkey.exists({ userId: user._id, standalone: { $ne: false } }),
   ]);
-  const providers = PROVIDERS.filter((p) => providerAvailable(p) && links.some((l) => l.provider === p));
+  // Linked providers never sign in, so they're never offered (the field stays for older clients).
+  const providers = PROVIDER_SIGN_IN_ENABLED ? PROVIDERS.filter((p) => providerAvailable(p) && links.some((l) => l.provider === p)) : [];
   const password = Boolean(user.passwordHash);
   // A password account looks like any other: its providers and passkeys aren't shown.
   if (password) return ordinary(email);

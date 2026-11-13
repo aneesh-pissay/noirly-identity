@@ -69,9 +69,8 @@ describe("security keys", () => {
     await LinkedAccount.create({ userId: user._id, provider: "google", providerAccountId: "g-keys" });
     await keyFor(user._id, false);
     expect((await listSignInMethods(String(user._id))).passkeys).toBe(0);
-    // Google is still its only way in, a second-step key alongside or not.
-    await expect(assertKeepsAWayIn(String(user._id), { providers: 1 })).rejects.toMatchObject({ code: "last_sign_in_method" });
+    // A second-step-only key is no way in, so the one key that signs in by itself can't go.
     await keyFor(user._id, true);
-    await expect(assertKeepsAWayIn(String(user._id), { providers: 1 })).resolves.toBeUndefined();
+    await expect(assertKeepsAWayIn(String(user._id), { passkeys: 1 })).rejects.toMatchObject({ code: "last_sign_in_method" });
   });
 });

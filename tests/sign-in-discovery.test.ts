@@ -35,10 +35,11 @@ describe("email-first sign-in", () => {
     expect(unknown).toEqual({ email: "nobody@example.com", ...ORDINARY });
   });
 
-  it("steers accounts without a password to what they can use", async () => {
+  it("steers accounts without a password to what they can use, never a linked provider", async () => {
     const googleOnly = await passwordlessUser("google-only@example.com");
     await LinkedAccount.create({ userId: googleOnly._id, provider: "google", providerAccountId: "g-2" });
-    expect(await discoverSignIn("google-only@example.com")).toEqual({ email: "google-only@example.com", password: false, passkey: false, providers: ["google"], emailLink: true });
+    // Linked providers never sign in: the password box (with its reset link) and the emailed link instead.
+    expect(await discoverSignIn("google-only@example.com")).toEqual({ email: "google-only@example.com", password: true, passkey: false, providers: [], emailLink: true });
 
     const passkeyOnly = await passwordlessUser("passkey-only@example.com");
     await Passkey.create({ userId: passkeyOnly._id, credentialId: "k-2", publicKey: "k", counter: 0 });

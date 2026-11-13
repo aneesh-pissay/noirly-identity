@@ -76,27 +76,24 @@ describe("Microsoft and GitHub", () => {
   });
 });
 
-describe("unverified provider addresses", () => {
+describe("Microsoft and GitHub accounts are only linked", () => {
   const unverified = (sub: string, email: string): ProviderProfile => ({ sub, email, emailVerified: false, firstName: "A", lastName: "R", displayName: "A R", avatarUrl: null });
 
-  it("can't find or create an account, but a linked one still signs in", async () => {
+  it("can't find, create or sign in to an account, linked or not", async () => {
     const { user } = await createTestUser({ email: "asha@contoso.com" });
-    // Someone's organisation claims the address: no takeover, no new account.
-    await expect(loginWithProviderProfile("microsoft", unverified("t:1", "asha@contoso.com"), {})).rejects.toMatchObject({ code: "microsoft_email_unverified" });
-    await expect(loginWithProviderProfile("github", unverified("99", "new@example.com"), {})).rejects.toMatchObject({ code: "github_email_unverified" });
+    await expect(loginWithProviderProfile("microsoft", unverified("t:1", "asha@contoso.com"), {})).rejects.toMatchObject({ code: "provider_sign_in_off" });
+    await expect(loginWithProviderProfile("github", unverified("99", "new@example.com"), {})).rejects.toMatchObject({ code: "provider_sign_in_off" });
     expect(await User.countDocuments()).toBe(1);
-    expect(await LinkedAccount.countDocuments()).toBe(0);
 
-    // Linked from settings, where the email isn't relied on, it signs in by its id.
+    // Linking from settings doesn't rely on the email, and still never signs in.
     await linkProvider("microsoft", String(user._id), unverified("t:1", "asha@contoso.com"));
-    const signedIn = await loginWithProviderProfile("microsoft", unverified("t:1", "asha@contoso.com"), {});
-    expect(signedIn.user.id).toBe(String(user._id));
+    expect(await LinkedAccount.countDocuments({ userId: user._id })).toBe(1);
+    await expect(loginWithProviderProfile("microsoft", unverified("t:1", "asha@contoso.com"), {})).rejects.toMatchObject({ code: "provider_sign_in_off" });
   });
 
-  it("never marks the account's own address verified on another address's say-so", async () => {
+  it("never marks the account's own address verified on a linked account's say-so", async () => {
     const { user } = await createTestUser({ email: "pending@example.com", status: "pending_verification" });
     await linkProvider("github", String(user._id), { sub: "5", email: "other@example.com", emailVerified: true, firstName: "A", lastName: "R", displayName: "A R", avatarUrl: null });
-    await expect(loginWithProviderProfile("github", { sub: "5", email: "other@example.com", emailVerified: true, firstName: "A", lastName: "R", displayName: "A R", avatarUrl: null }, {})).rejects.toMatchObject({ code: "email_not_verified" });
     expect((await User.findById(user._id).lean())!.emailVerified).toBe(false);
   });
 });

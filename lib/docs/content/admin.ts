@@ -63,7 +63,7 @@ export const admin: DocArticle[] = [
       { name: "Approve, Decline", description: "For recovery requests flagged as risky." },
     ],
     permissions: [ADMINS],
-    advanced: ["Passkeys and providers keep working after unlock; remove them separately if they were what leaked.", "An admin can't contain their own account."],
+    advanced: ["Passkeys keep working after unlock; remove them separately if they were what leaked.", "An admin can't contain their own account."],
     troubleshooting: [{ problem: "“No such account”", solution: "Use the account's primary address." }],
     related: ["audit-log", "freezing-your-account", "losing-your-second-step"],
     sources: ["components/AdminSecurity.tsx", "app/(app)/admin/security/page.tsx", "lib/security/containment.ts", "app/api/admin/accounts", "app/api/admin/recoveries"],

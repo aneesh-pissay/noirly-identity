@@ -61,7 +61,7 @@ export const enterprise: DocArticle[] = [
     summary: "Make your domains sign in only through your provider, with up to three emergency accounts for when it's down.",
     location: "Spaces → a space → Single sign-on → Require single sign-on for these domains",
     introduction:
-      "Once a provider is connected, owners can require it. Addresses at the connected domains then sign in only through the provider: passwords, passkeys, providers and emailed links are refused, and sessions made those ways end at once. Break-glass accounts are the exception for when your provider is down.",
+      "Once a provider is connected, owners can require it. Addresses at the connected domains then sign in only through the provider: passwords, passkeys and emailed links are refused, and sessions made those ways end at once. Break-glass accounts are the exception for when your provider is down.",
     problem: "Single sign-on that's optional leaves a password-based back door, and one that's mandatory locks everyone out the day the provider fails.",
     solution: "Enforcement is checked wherever a session is made, and a few named accounts can still get in, with a second step, every use recorded and emailed to owners.",
     highlights: ["Enforced for every sign-in path", "Ends non-SSO sessions when turned on", "Up to three break-glass accounts", "Each break-glass sign-in alerts every owner"],

@@ -81,7 +81,6 @@ export const account: DocArticle[] = [
     advanced: [
       "An address confirmed on one account can't be added to another.",
       "Changing the primary address tells the spaces you're in, so apps update who you are.",
-      "A sign-in provider that proves an additional address finds this account by it.",
     ],
     troubleshooting: [
       { problem: "Make primary isn't offered", solution: "The address hasn't been confirmed yet. Open its link, or choose Send link again." },
@@ -177,9 +176,9 @@ export const account: DocArticle[] = [
     introduction:
       "If you ended up with two Noirly accounts, merge them. You start from the account you want to keep, name the other by its email address, and confirm from that address's inbox. You're then shown exactly what comes across and what doesn't before anything happens.",
     problem: "Two accounts mean two sets of spaces and invitations going to the wrong one. Deleting one loses what it had.",
-    solution: "Merging moves the other account's sign-in providers, passkeys, addresses and space memberships here, tells apps so they can move the data they hold, and closes the other account.",
+    solution: "Merging moves the other account's linked accounts, passkeys, addresses and space memberships here, tells apps so they can move the data they hold, and closes the other account.",
     highlights: ["Confirmed from the other account's inbox", "A preview of what moves and what doesn't", "Apps are told, so they can move their data", "Can't be undone"],
-    useCases: [{ title: "Signed up twice", body: "Once with a password at your personal address and once with Google at work: keep one, merge the other." }],
+    useCases: [{ title: "Signed up twice", body: "Once at your personal address and once at work: keep one, merge the other." }],
     steps: [
       { title: "Ask", body: "Enter The other account's email address and choose Send confirmation link." },
       { title: "Confirm", body: "Open the link sent to that address and confirm on Merge your accounts. The link lasts 24 hours." },

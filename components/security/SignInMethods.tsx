@@ -17,13 +17,16 @@ const LINK_ERRORS: Record<string, (label: string) => string> = {
 
 function firstMessage(linked: string | null, linkError: string | null, provider: string | null) {
   const known = (value: string | null): value is Provider => (PROVIDERS as readonly string[]).includes(value ?? "");
-  if (known(linked)) return `${PROVIDER_LABEL[linked]} is linked. You can sign in with it now.`;
+  if (known(linked)) return `${PROVIDER_LABEL[linked]} is linked to your account.`;
   if (!linkError) return "";
   const label = known(provider) ? PROVIDER_LABEL[provider] : "That account";
   return LINK_ERRORS[linkError]?.(label) ?? `${label} couldn't be linked. Try again.`;
 }
 
-/** Every way into the account, with providers linked or unlinked here; the last one can't be removed. */
+/**
+ * Every way into the account (the last one can't be removed), then the
+ * provider accounts linked to it. Linked accounts never sign anyone in.
+ */
 export function SignInMethods({ linked, linkError, provider }: { linked: string | null; linkError: string | null; provider: string | null }) {
   const [methods, setMethods] = useState<Methods | null>(null);
   const [busy, setBusy] = useState(false);
@@ -72,12 +75,12 @@ export function SignInMethods({ linked, linkError, provider }: { linked: string 
     }
   }
 
-  const total = methods ? methodCount({ password: methods.password, passkeys: methods.passkeys, providers: methods.providers.filter((p) => p.linked).length }) : 0;
-  const last = total <= 1;
+  const total = methods ? methodCount({ password: methods.password, passkeys: methods.passkeys }) : 0;
+  const last = total === 1;
 
   return <section id="sign-in-methods" aria-labelledby="methods-title" className="mx-auto my-8 w-full max-w-3xl scroll-mt-8 space-y-5 rounded-2xl border border-[var(--hairline)] p-6">
     <h2 id="methods-title" className="text-xl font-semibold">Ways to sign in</h2>
-    <p className="text-sm opacity-75">Keep more than one, in case you lose a device or a password. Your only way in can&apos;t be removed. Adding, removing, linking or unlinking needs a sign-in within the last five minutes.</p>
+    <p className="text-sm opacity-75">Sign in with your email address and a password, an emailed link or code, or a passkey. Your only password or passkey can&apos;t be removed. Adding, removing, linking or unlinking needs a sign-in within the last five minutes.</p>
     {message && <p role="status" className="text-sm">{message}</p>}
     {!methods ? <p role="status">Loading sign-in methods…</p> : (
       <ul aria-label="Ways to sign in" className="divide-y divide-[var(--hairline)]">
@@ -110,21 +113,29 @@ export function SignInMethods({ linked, linkError, provider }: { linked: string 
         <li className="flex flex-wrap items-center justify-between gap-2 py-3">
           <span>Emailed sign-in link <span className="ml-2 text-xs opacity-75">Always available, sent to your primary email address</span></span>
         </li>
-        {methods.providers.map((p) => (
-          <li key={p.provider} data-provider={p.provider} className="flex flex-wrap items-center justify-between gap-2 py-3">
-            <span>
-              {PROVIDER_LABEL[p.provider]}
-              <span className="ml-2 text-xs opacity-75">{p.linked ? `Linked${p.linked.email ? ` as ${p.linked.email}` : ""}` : "Not linked"}</span>
-            </span>
-            {p.linked
-              ? <button type="button" className={button} disabled={busy || last} title={last ? "Your only way to sign in" : undefined} onClick={() => void unlink(p.provider)}>Unlink <span className="sr-only">{PROVIDER_LABEL[p.provider]}</span></button>
-              : p.available
-                ? <a href={`${providerStartPath(p.provider)}?intent=link`} className={button}>Link {PROVIDER_LABEL[p.provider]}</a>
-                : <span className="text-xs opacity-75">Not available</span>}
-          </li>
-        ))}
       </ul>
     )}
-    {methods && last && <p className="text-sm opacity-75">This is your only way to sign in. Add another before removing it.</p>}
+    {methods && last && <p className="text-sm opacity-75">This is your only password or passkey. Add another before removing it.</p>}
+    {methods && methods.providers.length ? (
+      <div className="space-y-2 border-t border-[var(--hairline)] pt-5">
+        <h3 className="font-medium">Linked accounts</h3>
+        <p className="text-sm opacity-75">Link your Google, Apple, Microsoft or GitHub account to show it&apos;s yours. Linked accounts never sign you in to Noirly.</p>
+        <ul aria-label="Linked accounts" className="divide-y divide-[var(--hairline)]">
+          {methods.providers.map((p) => (
+            <li key={p.provider} data-provider={p.provider} className="flex flex-wrap items-center justify-between gap-2 py-3">
+              <span>
+                {PROVIDER_LABEL[p.provider]}
+                <span className="ml-2 text-xs opacity-75">{p.linked ? `Linked${p.linked.email ? ` as ${p.linked.email}` : ""}` : "Not linked"}</span>
+              </span>
+              {p.linked
+                ? <button type="button" className={button} disabled={busy} onClick={() => void unlink(p.provider)}>Unlink <span className="sr-only">{PROVIDER_LABEL[p.provider]}</span></button>
+                : p.available
+                  ? <a href={`${providerStartPath(p.provider)}?intent=link`} className={button}>Link {PROVIDER_LABEL[p.provider]}</a>
+                  : <span className="text-xs opacity-75">Not available</span>}
+            </li>
+          ))}
+        </ul>
+      </div>
+    ) : null}
   </section>;
 }

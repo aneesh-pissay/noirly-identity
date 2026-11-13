@@ -28,14 +28,13 @@ function oid(id: string) {
 }
 
 async function countsFor(userId: Types.ObjectId): Promise<Counts> {
-  const [user, passkeys, providers] = await Promise.all([
+  const [user, passkeys] = await Promise.all([
     User.findById(userId).select("+passwordHash").lean(),
     // Only keys that sign in by themselves: a second-step-only key is no way in alone.
     Passkey.countDocuments({ userId, standalone: { $ne: false } }),
-    LinkedAccount.countDocuments({ userId }),
   ]);
   if (!user) throw new AppError("Authentication required", 401, "unauthorized");
-  return { password: Boolean(user.passwordHash), passkeys, providers };
+  return { password: Boolean(user.passwordHash), passkeys };
 }
 
 /** Refuses a removal that would leave no way to sign in. */
@@ -44,14 +43,13 @@ export async function assertKeepsAWayIn(userId: string, removing: Partial<Counts
   const after = {
     password: counts.password && !removing.password,
     passkeys: counts.passkeys - (removing.passkeys ?? 0),
-    providers: counts.providers - (removing.providers ?? 0),
   };
-  if (methodCount(after) < 1) {
-    throw new AppError("This is your only way to sign in. Add a password, a passkey or another account first.", 409, "last_sign_in_method");
+  if (methodCount(counts) >= 1 && methodCount(after) < 1) {
+    throw new AppError("This is your only way to sign in besides the emailed link. Add a password or a passkey first.", 409, "last_sign_in_method");
   }
 }
 
-/** Whether this provider is set up here, so it can be signed in with and linked. */
+/** Whether this provider is set up here, so it can be linked. */
 export function providerAvailable(provider: Provider): boolean {
   if (provider === "google") return isGoogleOAuthConfigured();
   if (provider === "apple") return isAppleConfigured();
@@ -104,7 +102,6 @@ export async function unlinkProvider(userId: string, provider: Provider, meta: R
   const id = oid(userId);
   const link = await LinkedAccount.findOne({ userId: id, provider }).lean();
   if (!link) throw new AppError("That account isn't linked", 404, "not_found");
-  await assertKeepsAWayIn(userId, { providers: 1 });
   await LinkedAccount.deleteOne({ _id: link._id });
   await recordEvent({ action: "account.identity_unlinked", subjectId: id, request: meta, data: { provider, email: link.email ?? null } });
   return listSignInMethods(userId);

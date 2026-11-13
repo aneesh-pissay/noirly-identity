@@ -39,13 +39,13 @@ describe("organization security policies", () => {
   it("require one of the allowed ways of signing in to open apps in the organization", async () => {
     const { ownerId, aliceId, space } = await setup();
     expect(await signInMeetsOrgMethods(space.id, ["password"])).toEqual({ ok: true, allowed: [] });
-    await setOrgSecurity(ownerId, space.id, { allowedMethods: ["passkey", "google"] });
+    await setOrgSecurity(ownerId, space.id, { allowedMethods: ["passkey", "sso"] });
 
     const withPassword = await openApp(aliceId, ["password"], space.id);
     expect(withPassword.pathname).toBe("/login");
     expect(withPassword.searchParams.get("reauth")).toBe("1");
     expect((await openApp(aliceId, ["password"], space.id, { prompt: "none" })).searchParams.get("error")).toBe("login_required");
-    expect((await openApp(aliceId, ["google"], space.id)).searchParams.get("code")).toBeTruthy();
+    expect((await openApp(aliceId, ["passkey"], space.id)).searchParams.get("code")).toBeTruthy();
     // Outside the organization, the person's own sign-in is theirs to choose.
     const { client } = await createTestClient();
     const { token } = await createSession({ userId: aliceId, methods: ["password"] });
@@ -84,6 +84,8 @@ describe("organization security policies", () => {
     await expect(setOrgSecurity(adminId, space.id, { allowedMethods: [] })).rejects.toMatchObject({ status: 403 });
     await expect(setOrgSecurity(aliceId, space.id, { allowedMethods: [] })).rejects.toMatchObject({ status: 403 });
     await expect(setOrgSecurity(ownerId, space.id, { allowedMethods: ["totp"] })).rejects.toMatchObject({ status: 400 });
+    // Providers only link now, so they can't be required either.
+    await expect(setOrgSecurity(ownerId, space.id, { allowedMethods: ["google"] })).rejects.toMatchObject({ status: 400 });
     await expect(setOrgSecurity(ownerId, space.id, { sessionPolicy: { idleSeconds: 60, absoluteSeconds: null } })).rejects.toMatchObject({ status: 400 });
     expect(await getOrgSecurity(aliceId, space.id)).toMatchObject({ allowedMethods: ["passkey"], requireMfa: false });
   });

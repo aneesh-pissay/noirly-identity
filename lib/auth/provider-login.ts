@@ -61,7 +61,29 @@ export async function discardUnverifiedRegistration(user: Pick<UserDocument, "_i
   ]);
 }
 
+/**
+ * Google, Apple, Microsoft and GitHub never sign anyone in to Noirly or create
+ * an account: people sign in with their email (password, link or code) or a
+ * passkey, and may link provider accounts from Security. Every provider
+ * sign-in (web, One Tap and the mobile apps) comes through here.
+ */
+export const PROVIDER_SIGN_IN_ENABLED: boolean = false;
+
+/** The sign-in page, saying why, for a provider start that isn't linking (an old button or bookmark). */
+export function providerSignInOffUrl(provider: Provider, appUrl: string) {
+  const url = new URL("/login", appUrl);
+  url.searchParams.set("error", `Noirly doesn't sign in with ${LABEL[provider]}. Sign in with your email address or a passkey.`);
+  return url;
+}
+
 export async function loginWithProviderProfile(provider: Provider, profile: ProviderProfile, meta: ProviderLoginMeta): Promise<{ user: PublicUser; sessionToken: string }> {
+  if (!PROVIDER_SIGN_IN_ENABLED) {
+    throw new AppError(
+      `Noirly doesn't sign in with ${LABEL[provider]}. Sign in with your email address or a passkey; you can still link ${LABEL[provider]} under Account, then Security.`,
+      403,
+      "provider_sign_in_off",
+    );
+  }
   const linked = await LinkedAccount.findOne({ provider, providerAccountId: profile.sub });
 
   let user = linked ? await User.findById(linked.userId).select("+passwordHash") : null;

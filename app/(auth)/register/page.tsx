@@ -8,14 +8,11 @@ import { AuthLogo } from "@/components/AuthLogo";
 import {
   BusyOverlay,
   FormField,
-  GoogleButton,
   Notice,
   ScreenFallback,
   SubmitButton,
   TextLink,
 } from "@/components/auth-ui";
-import { GoogleOneTap } from "@/components/GoogleOneTap";
-import { OrDivider } from "@/components/OrDivider";
 import { getCsrf } from "@/lib/auth/csrf-client";
 import { withPopup, withReturnTo } from "@/lib/auth/return-to";
 
@@ -26,19 +23,10 @@ function RegisterForm() {
   const compact = searchParams.get("popup") === "1";
   const [error, setError] = useState<string | null>(null);
   const [csrf, setCsrf] = useState("");
-  const [googleEnabled, setGoogleEnabled] = useState(false);
-  const [googleClientId, setGoogleClientId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     void getCsrf().then(setCsrf);
-    void fetch("/api/auth/oauth-providers")
-      .then((res) => res.json() as Promise<{ google?: boolean; googleClientId?: string | null }>)
-      .then((data) => {
-        setGoogleEnabled(Boolean(data.google));
-        setGoogleClientId(data.googleClientId ?? null);
-      })
-      .catch(() => undefined);
   }, []);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
@@ -96,22 +84,6 @@ function RegisterForm() {
     >
       {submitting ? <BusyOverlay label="Creating account" /> : null}
       <div className="flex flex-col gap-6">
-        {googleEnabled && googleClientId ? (
-          <>
-            <GoogleOneTap
-              clientId={googleClientId}
-              returnTo={returnTo}
-              context="signup"
-              popup={compact}
-            />
-            <OrDivider />
-          </>
-        ) : googleEnabled ? (
-          <>
-            <GoogleButton returnTo={returnTo} />
-            <OrDivider />
-          </>
-        ) : null}
         <form className="flex flex-col gap-4" onSubmit={onSubmit}>
           <FormField
             label="First name"
